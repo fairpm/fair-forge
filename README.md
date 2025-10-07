@@ -5,7 +5,7 @@
 * glues together tools like git/gh/composer/phpcs/spdx, does not replace them
 * Inspirations: Dist::Zilla, Gulp, Vite, Nix
 * A collection of tools, not a single tool.  No one will use the whole thing.
-* "<aything> to tarball, tarball to <anything>"
+* "`<whatever>` to tarball, tarball to `<whatever>`"
 
 
 ### Source Code Retrieval
