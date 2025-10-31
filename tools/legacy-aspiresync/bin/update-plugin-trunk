@@ -1,9 +1,8 @@
 #!/bin/bash
 
-# Must be run from within the svn checkout.  Will create or update the archive directory using the same name as the current
 
 . $(dirname $0)/prelude.bash
-cd $ORIG_PWD
+cd $PLUGINS_DIR
 
 enforce_svn_root
 
@@ -82,7 +81,7 @@ function finalize() {
   local message=$2
 
   warn "$dir: $message"
-  [[ -n $UPDATE_KEEP_DIRS ]] || rm -rf "$dir"
+  [[ -n ${UPDATE_KEEP_DIRS:-} ]] || rm -rf "$dir"
 }
 
 function get_revision() {
