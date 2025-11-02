@@ -31,6 +31,21 @@
             zstd
           ];
         };
+
+        # WIP docker support
+        # https://community.flake.parts/haskell-flake/docker
+        packages = {
+          dockerImage = pkgs.dockerTools.buildImage {
+            name = "aspirebuild";
+            tag = builtins.substring 0 9 (self.rev or "dev"); # tag with git revision, or 'dev' if dirty
+            config = {
+              Env = [
+                "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+                "SYSTEM_CERTIFICATE_PATH=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+              ];
+            };
+          };
+        };
       }
-    );
+  );
 }
