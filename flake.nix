@@ -17,6 +17,7 @@
             bash
             coreutils
             curl
+            git
             gnutar
             jq
             just
