@@ -1,8 +1,11 @@
 # Toolbox
 
-Proposed checks to be developed for use by AspireBuild.
-
 See Also: https://github.com/fairpm/trust/blob/FAIR-Trust-Model/fair-trust-model/to-do.md
+
+The AspireBuild Toolbox contains three toolchains. One of these is used to prepare non-FAIR packages for evaluation and federation, while the other two are used to check compliance, security, and code quality in order to create metadata for use in calculatng trust signals and evaluating the package's suitability for federation. These relationshp and function of these toolchains within FAIR may be illustrated as follows.
+
+![AspireBuild-Components](https://github.com/user-attachments/assets/71e9749f-ceae-4b18-8a12-040196e0e6b1)<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+
 
 ## List of prior art, possible sources, & related resources.
 
