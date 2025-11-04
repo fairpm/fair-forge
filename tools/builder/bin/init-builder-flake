@@ -11,6 +11,3 @@ builder=${1:-}
 [[ -f $builder/flake.nix ]] || cp $builder/.aspirebuild/flake.nix $builder
 [[ -f $builder/flake.lock ]] || cp $builder/.aspirebuild/flake.lock $builder
 [[ -e $builder/.envrc ]] || echo "use flake" > $builder/.envrc
-
-# I really hate this part
-# [[ -d $builder/.git ]] || ( cd $builder; git -c advice.addEmbeddedRepo=false init; git -c advice.addEmbeddedRepo=false add . ) >/dev/null
