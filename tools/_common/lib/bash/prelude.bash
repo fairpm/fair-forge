@@ -7,6 +7,7 @@ set -o pipefail
 # These are not exported, but will be visible in the tool if they wish to do so.
 __ORIG_PWD=$PWD
 __HERE=$(dirname "$0")
+__HERE=$(realpath "$__HERE")
 
 function warn  { echo "$@" >&2; }
 function die   { warn "$@"; exit 1; }
