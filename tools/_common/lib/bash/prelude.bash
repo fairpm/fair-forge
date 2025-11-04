@@ -4,31 +4,42 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+# These are not exported, but will be visible in the tool if they wish to do so.
+__ORIG_PWD=$PWD
+__HERE=$(dirname "$0")
+
 function warn  { echo "$@" >&2; }
 function die   { warn "$@"; exit 1; }
 
-# not exported by default
-__ORIG_PWD=$PWD
+function _find_aspirebuild_root {
+    local dir
+    dir=$(dirname "$0")
+    dir=$(realpath "$dir")
+    while [[ -n $dir ]]; do
+        if [[ -d "$dir/tools/_common" ]]; then
+            echo "$dir"
+            return
+        fi
+        newdir=$(dirname "$dir")
+        [[ $newdir = "$dir" ]] && break
+        dir=$newdir
+    done
+    die "Could not find aspirebuild root in any parent directory of $PWD"
+}
 
-ASPIREBUILD_TOOL_DIR=${ASPIREBUILD_TOOL_DIR:-$(dirname "$0")/..}
-ASPIREBUILD_TOOL_DIR=$(realpath "$ASPIREBUILD_TOOL_DIR")
+# spawned builders will set this to the new builder's .aspirebuild dir
+export ASPIREBUILD=${ASPIREBUILD:-$(_find_aspirebuild_root)}
+export ASPIREBUILD_DEPTH=$(( ${ASPIREBUILD_DEPTH:--1} + 1 )) # base is level 0, meaning builders will be at level 1
 
-ASPIREBUILD_BASE_DIR=${ASPIREBUILD_BASE_DIR:-$ASPIREBUILD_TOOL_DIR/../..}
-ASPIREBUILD_BASE_DIR=$(realpath "$ASPIREBUILD_BASE_DIR")
-
-ASPIREBUILD_BUILDER_DIR=${ASPIREBUILD_BUILDER_DIR:-$ASPIREBUILD_BASE_DIR/builders}
-ASPIREBUILD_BUILDER_DIR=$(realpath "$ASPIREBUILD_BUILDER_DIR")
-
-export ASPIREBUILD_TOOL_DIR ASPIREBUILD_BASE_DIR ASPIREBUILD_BUILDER_DIR
+[[ $ASPIREBUILD_DEPTH -lt ${ASPIREBUILD_RECURSION_LIMIT:-10} ]] || die "Maximum aspirebuild recursion depth reached.  Aborted."
 
 # We bail out early if our cwd contains spaces, rather than risk stepping on this mine later.
 # We make reasonable efforts to quote bash arguments, but 'bash' and 'reasonable' do not belong in the same sentence.
-cd "$ASPIREBUILD_TOOL_DIR" || die "Could not cd to $ASPIREBUILD_TOOL_DIR"
-[[ "$PWD" =~ [[:space:]] ]] && die "Refusing to deal with working directory containing whitespace.  Aborted."
+[[ "$ASPIREBUILD" =~ [[:space:]] ]] && die "Refusing to deal with working directory containing whitespace.  Aborted."
 
-mkdir -p "$ASPIREBUILD_BUILDER_DIR"
+cd "$ASPIREBUILD"
 
-for file in $(shopt -s nullglob; echo "$ASPIREBUILD_TOOL_DIR/lib/bash/prelude.d"/*.bash); do
+for file in $(shopt -s nullglob; echo "$__HERE/../lib/bash/prelude.d"/*.bash); do
     # shellcheck source=/dev/null
     source "$file"
 done

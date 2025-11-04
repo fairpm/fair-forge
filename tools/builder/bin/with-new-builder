@@ -5,13 +5,11 @@ source "$here/../lib/bash/prelude.bash"
 
 [[ -n "$*" ]] || die "usage: $0 <cmdline ...>"
 
-builder=$(bin/mkbuilder)
+builder=$("$__HERE/mkbuilder")
 [[ -z ${KEEP_BUILDER:-} ]] && trap "rm -rf $builder" EXIT
 
 # will take their default values inside the builder when invoking any tool
-unset ASPIREBUILD_BASE_DIR
-unset ASPIREBUILD_TOOL_DIR
-unset ASPIREBUILD_BUILDER_DIR
+export ASPIREBUILD=$builder/.aspirebuild
 
 cd "$builder"
 "$@"

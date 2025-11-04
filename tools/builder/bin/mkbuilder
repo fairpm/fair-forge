@@ -3,13 +3,13 @@
 # shellcheck disable=SC2086
 source "$(dirname $0)"/../lib/bash/prelude.bash
 
-cd $ASPIREBUILD_BASE_DIR
+builders=${ASPIREBUILD_BUILDER_DIR:-$ASPIREBUILD/builders}
+mkdir -p "$builders"
 
-build_dir=${1:-$(mktemp -d $ASPIREBUILD_BUILDER_DIR/builder.XXXXXXXXXX)}
+builder=${1:-$(mktemp -d $builders/builder.XXXXXXXXXX)}
 
-[[ $build_dir =~ ^/ ]] || build_dir=$ASPIREBUILD_BUILDER_DIR/$build_dir
+[[ $builder =~ ^/ ]] || builder=$builders/$builder
 
-# This does the trick, but we really want a nix build...
-git clone . $build_dir > /dev/null
+git clone . $builder/.aspirebuild > /dev/null
 
-echo $build_dir
+echo $builder
