@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-
-# shellcheck disable=SC2086
-source "$(dirname $0)"/../lib/bash/prelude.bash
-
-env | grep -E '^ASPIREBUILD_'
-echo "PATH=$PATH"

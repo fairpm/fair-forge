@@ -5,10 +5,8 @@ source "$here/../lib/bash/prelude.bash"
 
 [[ -n "$*" ]] || die "usage: $0 <cmdline ...>"
 
-builder=$("$__HERE/mkbuilder")
+builder=$("$__HERE/make-builder")
 [[ -z ${KEEP_BUILDER:-} ]] && trap "rm -rf $builder" EXIT
-
-export ASPIREBUILD=$builder/.aspirebuild
 
 cd "$builder"
 "$@"

@@ -10,10 +10,6 @@ builder=${1:-$(mktemp -d $builders/builder.XXXXXXXXXX)}
 
 [[ $builder =~ ^/ ]] || builder=$builders/$builder
 
-git clone . $builder/.aspirebuild > /dev/null
-ln -s $builder $builder/.aspirebuild/builder
-
-# should be deferred til later, e.g. in a Justfile, when it doesn't have to be silenced
-# $__HERE/init-builder-flake $builder >/dev/null 2>&1
+$__HERE/init-builder $builder >/dev/null
 
 echo $builder
