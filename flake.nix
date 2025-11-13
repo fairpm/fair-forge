@@ -1,5 +1,7 @@
 {
-  # a work in progress.
+  # This flake, which I'm now calling The One Flake, describes the entire AspireBuild monorepo including all its tools.
+  # The eventual goal is to make each tool its own flake, as well as each builder, with each tool and builder depending
+  # on the AspireBuild flake.  However we're not there yet, so currently we manage everything through The One Flake.
 
   description = "AspireBuild";
 
