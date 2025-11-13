@@ -58,41 +58,39 @@
 
           extensions = with pkgs.php84Extensions; [
             bcmath
+            ctype
             curl
+            dom
             ffi
             filter
             gettext
             gmp
             intl
             mbstring
+            openssl
             pdo
             pdo_sqlite
+            posix
             readline
+            simplexml
             sockets
             sodium
             sqlite3
+            tokenizer
+            xmlwriter
 
             # full list in /nix/store/nsybw5k5jcqwccbgslfq5psmqh3x3svs-php-with-extensions-8.4.14/lib/php.ini
 
             # future consideration
-            #ctype
-            #dom
             #fileinfo
             #iconv
             #mysqli
             #mysqlnd
-            #openssl
             #pcntl
             #pdo_mysql
             #pdo_pgsql
             #pgsql
-            #posix
             #session
-            #simplexml
-            #sockets
-            #tokenizer
-            #xmlreader
-            #xmlwriter
             #zip
             #zlib
           ];
