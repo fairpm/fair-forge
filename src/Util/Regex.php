@@ -17,6 +17,13 @@ class Regex
         return $matches ?? [];
     }
 
+    /** @return list<list<string>> */
+    public static function allMatches(string $pattern, string $subject): array
+    {
+        \Safe\preg_match_all($pattern, $subject, $matches, PREG_SET_ORDER);
+        return $matches ?? [];
+    }
+
     public static function replace(string $pattern, string $replacement, string $subject, int $limit = -1): string
     {
         return \Safe\preg_replace($pattern, $replacement, $subject, $limit);
