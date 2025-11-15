@@ -29,6 +29,9 @@
 
 namespace AspireBuild\Tools\Sideways;
 
+use Closure;
+use InvalidArgumentException;
+
 class Sideways
 {
 
@@ -184,7 +187,7 @@ class Sideways
             }
 
             foreach ($blockTypes as $blockType) {
-                $Block = $this->{"block$blockType"}($Line, $CurrentBlock);
+                $Block = $this->_dispatch('block', $blockType)($Line, $CurrentBlock);
 
                 if (isset($Block)) {
                     $Block['type'] = $blockType;
@@ -255,7 +258,8 @@ class Sideways
 
     protected function isBlockContinuable($Type): bool
     {
-        return method_exists($this, 'block' . $Type . 'Continue');
+        // return method_exists($this, 'block' . $Type . 'Continue');
+        return $this->_dispatch('continue', $Type) !== null;
     }
 
     protected function isBlockCompletable($Type): bool
@@ -449,7 +453,7 @@ class Sideways
             'element' => [
                 'name'    => 'h' . $level,
                 'handler' => [
-                    'function'    => 'lineElements',
+                    'function'    => $this->lineElements(...),
                     'argument'    => $text,
                     'destination' => 'elements',
                 ],
@@ -508,7 +512,7 @@ class Sideways
             $Block['li'] = [
                 'name'    => 'li',
                 'handler' => [
-                    'function'    => 'li',
+                    'function'    => $this->li(...),
                     'argument'    => !empty($matches[3]) ? [$matches[3]] : [],
                     'destination' => 'elements',
                 ],
@@ -558,7 +562,7 @@ class Sideways
             $Block['li'] = [
                 'name'    => 'li',
                 'handler' => [
-                    'function'    => 'li',
+                    'function'    => $this->li(...),
                     'argument'    => [$text],
                     'destination' => 'elements',
                 ],
@@ -624,7 +628,7 @@ class Sideways
                 'element' => [
                     'name'    => 'blockquote',
                     'handler' => [
-                        'function'    => 'linesElements',
+                        'function'    => $this->linesElements(...),
                         'argument'    => (array)$matches[1],
                         'destination' => 'elements',
                     ],
@@ -803,7 +807,7 @@ class Sideways
             $HeaderElement = [
                 'name'    => 'th',
                 'handler' => [
-                    'function'    => 'lineElements',
+                    'function'    => $this->lineElements(...),
                     'argument'    => $headerCell,
                     'destination' => 'elements',
                 ],
@@ -871,7 +875,7 @@ class Sideways
                 $Element = [
                     'name'    => 'td',
                     'handler' => [
-                        'function'    => 'lineElements',
+                        'function'    => $this->lineElements(...),
                         'argument'    => $cell,
                         'destination' => 'elements',
                     ],
@@ -905,7 +909,7 @@ class Sideways
             'element' => [
                 'name'    => 'p',
                 'handler' => [
-                    'function'    => 'lineElements',
+                    'function'    => $this->lineElements(...),
                     'argument'    => $Line['text'],
                     'destination' => 'elements',
                 ],
@@ -973,7 +977,7 @@ class Sideways
                     continue;
                 }
 
-                $Inline = $this->{"inline$inlineType"}($Excerpt);
+                $Inline = $this->_dispatch('inline', $inlineType)($Excerpt);
 
                 if (!isset($Inline)) {
                     continue;
@@ -1126,7 +1130,7 @@ class Sideways
             'element' => [
                 'name'    => $emphasis,
                 'handler' => [
-                    'function'    => 'lineElements',
+                    'function'    => $this->lineElements(...),
                     'argument'    => $matches[1],
                     'destination' => 'elements',
                 ],
@@ -1183,7 +1187,7 @@ class Sideways
         $Element = [
             'name'         => 'a',
             'handler'      => [
-                'function'    => 'lineElements',
+                'function'    => $this->lineElements(...),
                 'argument'    => null,
                 'destination' => 'elements',
             ],
@@ -1300,7 +1304,7 @@ class Sideways
                 'element' => [
                     'name'    => 'del',
                     'handler' => [
-                        'function'    => 'lineElements',
+                        'function'    => $this->lineElements(...),
                         'argument'    => $matches[1],
                         'destination' => 'elements',
                     ],
@@ -1357,6 +1361,7 @@ class Sideways
     }
 
 
+    /** @noinspection PhpUnused */
     protected function unmarkedText($text): string
     {
         $Inline = $this->inlineText($text);
@@ -1381,7 +1386,8 @@ class Sideways
                 $destination = $Element['handler']['destination'];
             }
 
-            $Element[$destination] = $this->{$function}($argument, $Element['nonNestables']);
+            // $Element[$destination] = $this->{$function}($argument, $Element['nonNestables']);
+            $Element[$destination] = $function($argument, $Element['nonNestables']);
 
             if ($destination === 'handler') {
                 $Element = $this->handle($Element);
@@ -1393,17 +1399,19 @@ class Sideways
         return $Element;
     }
 
+    /** @noinspection PhpUnused */
     protected function handleElementRecursive(array $Element)
     {
-        return $this->elementApplyRecursive([$this, 'handle'], $Element);
+        return $this->elementApplyRecursive($this->handle(...), $Element);
     }
 
+    /** @noinspection PhpUnused */
     protected function handleElementsRecursive(array $Elements): array
     {
-        return $this->elementsApplyRecursive([$this, 'handle'], $Elements);
+        return $this->elementsApplyRecursive($this->handle(...), $Elements);
     }
 
-    protected function elementApplyRecursive($closure, array $Element)
+    protected function elementApplyRecursive(Closure $closure, array $Element)
     {
         $Element = $closure($Element);
 
@@ -1750,4 +1758,57 @@ class Sideways
         'wbr',
         'time',
     ];
+
+    protected function _dispatch(string $name, string $type): ?Closure {
+        /** @noinspection PhpExpressionAlwaysNullInspection (false positive) */
+        return match ($name) {
+            'block' => match ($type) {
+                'Code' => $this->blockCode(...),
+                'Comment' => $this->blockComment(...),
+                'FencedCode' => $this->blockFencedCode(...),
+                'Header' => $this->blockHeader(...),
+                'List' => $this->blockList(...),
+                'Quote' => $this->blockQuote(...),
+                'Rule' => $this->blockRule(...),
+                'SetextHeader' => $this->blockSetextHeader(...),
+                'Markup' => $this->blockMarkup(...),
+                'Reference' => $this->blockReference(...),
+                'Table' => $this->blockTable(...),
+                default => null,
+            },
+            'continue' => match ($type) {
+                'Code' => $this->blockCodeContinue(...),
+                'Comment' => $this->blockCommentContinue(...),
+                'FencedCode' => $this->blockFencedCodeContinue(...),
+                'List' => $this->blockListContinue(...),
+                'Quote' => $this->blockQuoteContinue(...),
+                'Markup' => $this->blockMarkupContinue(...),
+                'Table' => $this->blockTableContinue(...),
+                // default => throw new InvalidArgumentException("Unknown block type: $type"),
+                default => null,
+            },
+            'complete' => match ($type) {
+                'Code' => $this->blockCodeComplete(...),
+                'FencedCode' => $this->blockFencedCodeComplete(...),
+                'List' => $this->blockListComplete(...),
+            },
+            'inline' => match ($type) {
+                'Text' => $this->inlineText(...),
+                'Code' => $this->inlineCode(...),
+                'EmailTag' => $this->inlineEmailTag(...),
+                'Emphasis' => $this->inlineEmphasis(...),
+                'EscapeSequence' => $this->inlineEscapeSequence(...),
+                'Image' => $this->inlineImage(...),
+                'Link' => $this->inlineLink(...),
+                'Markup' => $this->inlineMarkup(...),
+                'SpecialCharacter' => $this->inlineSpecialCharacter(...),
+                'Strikethrough' => $this->inlineStrikethrough(...),
+                'Url' => $this->inlineUrl(...),
+                'UrlTag' => $this->inlineUrlTag(...),
+                // default => throw new InvalidArgumentException("Unknown inline type: $type"),
+                default => null,
+            },
+            default => throw new InvalidArgumentException("Invalid method type: $type"),
+        };
+    }
 }
