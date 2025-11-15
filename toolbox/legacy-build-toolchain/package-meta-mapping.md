@@ -1,8 +1,7 @@
+# Package Metadata Mapping
 
-## Package Metadata Mapping
-
-### .org Requirements
-#### [Plugin Readmes](https://developer.wordpress.org/plugins/wordpress-org/how-your-readme-txt-works/)
+## .org Requirements
+### [Plugin Readmes](https://developer.wordpress.org/plugins/wordpress-org/how-your-readme-txt-works/)
   - Plugin Name
   - Contributors (comma-separated list of wordpress.org usernames)
   - Tags (comma-separated list of 1-12 tags describing the plugin; only first 5 show, more than 12 detrimental to SEO)
@@ -23,7 +22,7 @@
 Max readme.txt file size is 10k for .org
 [Plugin Readme Generator](https://generatewp.com/plugin-readme/)
 
-#### [Plugin Headers](https://developer.wordpress.org/plugins/plugin-basics/header-requirements/)
+### [Plugin Headers](https://developer.wordpress.org/plugins/plugin-basics/header-requirements/)
 - Plugin Name
 - Plugin URI
 - Description (short)
@@ -39,8 +38,7 @@ Max readme.txt file size is 10k for .org
 - Update URI (used for disambiguation of slugs, [per dev note](https://make.wordpress.org/core/2021/06/29/introducing-update-uri-plugin-header-in-wordpress-5-8/))
 - Requires Plugins (comma-separated list of wp slugs) [per dev note](https://make.wordpress.org/core/2024/03/05/introducing-plugin-dependencies-in-wordpress-6-5/))
 
-
-### [FAIR Metadata Document](https://github.com/fairpm/fair-protocol/blob/main/specification.md#metadata-document)
+## [FAIR Metadata Document](https://github.com/fairpm/fair-protocol/blob/main/specification.md#metadata-document)
 
 | Property | Required? | Constraints | In WP Meta? |
 | -------- | --------- | ----------- | ----------- |
@@ -57,26 +55,46 @@ Max readme.txt file size is 10k for .org
 | [sections](https://github.com/fairpm/fair-protocol/blob/main/specification.md#sections) | no | A json map with defined keys for changelog, description, security; may include others | yes, yes, no |
 | [_links](https://github.com/fairpm/fair-protocol/blob/main/specification.md#_links) | no | [HAL links](https://datatracker.ietf.org/doc/html/draft-kelly-json-hal-11), with [defined relationships](https://github.com/fairpm/fair-protocol/blob/main/specification.md#links-metadata) | - |
 
-#### Release Document
+### Release Document
 
-| Property    | Required? | Constraints                                                          | In WP Meta? |
-| ----------- | --------- | -------------------------------------------------------------------- | ----------- |
-| version     | yes       | A string per [version](#property-version)  | yes |
-| artifacts   | yes       | A json map per [artifacts](#property-artifacts) | no |
-| provides    | no        | A json map per [provides](#property-provides)   | no, package type |
-| requires    | no        | A json map per [requires](#property-requires)   | maybe, dependencies |
-| suggests    | no        | A json map per [suggests](#property-suggests)   | no |
-| auth        | no        | A json map per [auth](#property-auth) authentiation if required with type, hint, hint_url | no |
-| _links      | no        | [HAL links][hal], with [defined relationships](#links-release); link to Repository Document & Metadata Document | no |
+| Property    | Required? | Constraints                                                          | In WP Meta?         |
+| ----------- | --------- | -------------------------------------------------------------------- | ------------------- |
+| version     | yes       | A string per [version](#property-version)                            | yes                 |
+| artifacts   | yes       | A json map per [artifacts](#property-artifacts)                      | no                  |
+| provides    | no        | A json map per [provides](#property-provides)                        | no, package type    |
+| requires    | no        | A json map per [requires](#property-requires)                        | maybe, dependencies |
+| suggests    | no        | A json map per [suggests](#property-suggests)                        | no                  |
+| auth        | no        | A json map per [auth](#property-auth) authentiation if required; type, hint, hint_url | no |
+| _links      | no        | [HAL links][hal], with [defined relationships](#links-release); links to Repository & Metadata Documents | no |
 
-#### Repository Document
+### Repository Document
 
-| Property    | Required? | Constraints                                                                    | In WP Meta? |
-| ----------- | --------- | ------------------------------------------------------------------------------ | ----------- |
-| name        | yes       | A string.                                                                      | no |
-| maintainers | yes       | A json list per [maintainers](#property-repo-maintainers) (name, url, email) | yes, authors |
-| security    | yes       | A json list per [security](#property-repo-security)       | no, infer |
-| privacy     | yes       | A URL string; link to repo's privacy policy                                    | no |
-| _links      | no        | [HAL links][hal], with [defined relationships](#links-repo)                    | no |
+| Property    | Required? | Constraints                                                                    | In WP Meta?  |
+| ----------- | --------- | ------------------------------------------------------------------------------ | ------------ |
+| name        | yes       | A string.                                                                      | no           |
+| maintainers | yes       | A json list per [maintainers](#property-repo-maintainers) (name, url, email)   | yes, authors |
+| security    | yes       | A json list per [security](#property-repo-security)                            | no, infer    |
+| privacy     | yes       | A URL string; link to repo's privacy policy                                    | no           |
+| _links      | no        | [HAL links][hal], with [defined relationships](#links-repo)                    | no           |
 
 
+## Summary: FAIR Package-Meta Mapping to Legacy Source
+
+| FAIR Meta   | Explicit?     | Source               |
+| ----------- | ------------- | -------------------- |
+| id          | Yes, Assigned | internally-generated |
+| type        | Yes           | |
+| license     | Yes           | |
+| authors     | Yes           | |
+| security    | Yes           | |
+| releases    | Yes           | |
+| slug        | Yes           | |
+| name        | Yes           | |
+| description | Yes           | |
+| keywords    | Yes           | |
+| sections    | Yes           | |
+| _links      | Yes           | |
+
+DID Document
+Metadata Document
+Repository Document
