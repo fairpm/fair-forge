@@ -10,14 +10,8 @@ use PHPUnit\Framework\TestCase;
 class SidewaysTest extends TestCase
 {
 
-    private $dirs;
-
-    /**
-     * @param $test
-     * @param $dir
-     */
     #[DataProvider('data')]
-    function test_data_dir($test, $dir)
+    public function test_data_dir($test, $dir): void
     {
         $markdown = file_get_contents("$dir/$test.md");
 
@@ -36,7 +30,7 @@ class SidewaysTest extends TestCase
         $this->assertEquals($expectedMarkup, $actualMarkup);
     }
 
-    function testRawHtml()
+    public function testRawHtml(): void
     {
         $markdown = "```php\nfoobar\n```";
         $expectedMarkup = '<pre><code class="language-php"><p>foobar</p></code></pre>';
@@ -53,7 +47,7 @@ class SidewaysTest extends TestCase
         $this->assertEquals($expectedSafeMarkup, $actualSafeMarkup);
     }
 
-    function testTrustDelegatedRawHtml()
+    public function testTrustDelegatedRawHtml(): void
     {
         $markdown = "```php\nfoobar\n```";
         $expectedMarkup = '<pre><code class="language-php"><p>foobar</p></code></pre>';
@@ -102,8 +96,9 @@ class SidewaysTest extends TestCase
         return $data;
     }
 
-    public function test_no_markup()
+    public function test_no_markup(): void
     {
+        /** @noinspection HtmlDeprecatedAttribute */
         $markdownWithHtml = <<<MARKDOWN_WITH_MARKUP
             <div>_content_</div>
 
@@ -151,7 +146,7 @@ class SidewaysTest extends TestCase
         $this->assertEquals($expectedHtml, $sidewaysWithNoMarkup->text($markdownWithHtml));
     }
 
-    public function testLateStaticBinding()
+    public function testLateStaticBinding(): void
     {
         $sideways = Sideways::instance();
         $this->assertInstanceOf(Sideways::class, $sideways);

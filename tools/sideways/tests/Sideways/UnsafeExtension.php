@@ -6,7 +6,7 @@ use AspireBuild\Tools\Sideways\Sideways;
 
 class UnsafeExtension extends Sideways
 {
-    protected function blockFencedCodeComplete($Block)
+    protected function blockFencedCodeComplete($Block): array
     {
         $text = $Block['element']['element']['text'];
         unset($Block['element']['element']['text']);

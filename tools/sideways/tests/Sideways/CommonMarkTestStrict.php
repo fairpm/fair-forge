@@ -12,32 +12,24 @@ use PHPUnit\Framework\TestCase;
  */
 class CommonMarkTestStrict extends TestCase
 {
-    const SPEC_URL = 'https://raw.githubusercontent.com/jgm/CommonMark/master/spec.txt';
+    const string SPEC_URL = 'https://raw.githubusercontent.com/jgm/CommonMark/master/spec.txt';
 
-    protected $sideways;
+    protected TestSideways $sideways;
 
     protected function setUp(): void
     {
         $this->sideways = new TestSideways(urlsLinked: false);
     }
 
-    /**
-     * @param $id
-     * @param $section
-     * @param $markdown
-     * @param $expectedHtml
-     */
+    /** @noinspection PhpUnusedParameterInspection */
     #[DataProvider('data')]
-    public function testExample($id, $section, $markdown, $expectedHtml)
+    public function testExample($id, $section, $markdown, $expectedHtml): void
     {
         $actualHtml = $this->sideways->text($markdown);
         $this->assertEquals($expectedHtml, $actualHtml);
     }
 
-    /**
-     * @return array
-     */
-    public static function data()
+    public static function data(): array
     {
         $spec = file_get_contents(self::SPEC_URL);
         if ($spec === false) {

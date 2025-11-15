@@ -2246,7 +2246,9 @@ class Sideways
         $DOMDocument = new DOMDocument;
 
         # http://stackoverflow.com/q/11309194/200145
-        $elementMarkup = mb_convert_encoding($elementMarkup, 'HTML-ENTITIES', 'UTF-8');
+        // $elementMarkup = mb_convert_encoding($elementMarkup, 'HTML-ENTITIES', 'UTF-8'); // deprecated
+        // $elementMarkup = htmlspecialchars($elementMarkup); // converts way more than the above did
+        // For Sideways, we'll force the encoding beforehand.  It'll always be UTF-8 by the time we get here.
 
         # http://stackoverflow.com/q/4879946/200145
         $DOMDocument->loadHTML($elementMarkup);
