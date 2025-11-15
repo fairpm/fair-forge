@@ -3,8 +3,8 @@
 namespace Tests\AspireBuild\Tools\Sideways;
 
 use PHPUnit\Framework\Attributes\DataProvider;
-
-require_once(__DIR__ . '/CommonMarkTestStrict.php');
+use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 /**
  * Test Sideways against the CommonMark spec, but less aggressive
@@ -18,13 +18,18 @@ require_once(__DIR__ . '/CommonMarkTestStrict.php');
  *
  * @link http://commonmark.org/ CommonMark
  */
-class CommonMarkTestWeak extends CommonMarkTestStrict
+class CommonMarkWeakTest extends TestCase
 {
     protected string $textLevelElementRegex;
+    protected TestSideways $sideways;
+
+    const string SPEC_URL = 'https://raw.githubusercontent.com/jgm/CommonMark/master/spec.txt';
 
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->sideways = new TestSideways(urlsLinked: false);
 
         $textLevelElements = $this->sideways->getTextLevelElements();
         array_walk($textLevelElements, function (&$element) {
@@ -60,5 +65,42 @@ class CommonMarkTestWeak extends CommonMarkTestStrict
             '$1',
             $markup,
         );
+    }
+
+    public static function data(): array
+    {
+        $spec = file_get_contents(self::SPEC_URL);
+        if ($spec === false) {
+            throw new RuntimeException('Unable to load CommonMark spec from ' . self::SPEC_URL);
+        }
+
+        $spec = str_replace("\r\n", "\n", $spec);
+        $spec = strstr($spec, '<!-- END TESTS -->', true);
+
+        $matches = [];
+        preg_match_all('/^`{32} example\n((?s).*?)\n\.\n(?:|((?s).*?)\n)`{32}$|^#{1,6} *(.*?)$/m', $spec, $matches,
+            PREG_SET_ORDER);
+
+        $data = [];
+        $currentId = 0;
+        $currentSection = '';
+        foreach ($matches as $match) {
+            if (isset($match[3])) {
+                $currentSection = $match[3];
+            } else {
+                $currentId++;
+                $markdown = str_replace('→', "\t", $match[1]);
+                $expectedHtml = isset($match[2]) ? str_replace('→', "\t", $match[2]) : '';
+
+                $data[$currentId] = [
+                    'id'           => $currentId,
+                    'section'      => $currentSection,
+                    'markdown'     => $markdown,
+                    'expectedHtml' => $expectedHtml,
+                ];
+            }
+        }
+
+        return $data;
     }
 }

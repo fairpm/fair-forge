@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
  *
  * @link http://commonmark.org/ CommonMark
  */
-class CommonMarkTestStrict extends TestCase
+class CommonMarkStrictTest extends TestCase
 {
     const string SPEC_URL = 'https://raw.githubusercontent.com/jgm/CommonMark/master/spec.txt';
 
