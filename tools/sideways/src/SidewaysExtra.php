@@ -29,11 +29,6 @@ class SidewaysExtra extends Sideways
 
     function __construct()
     {
-        if (version_compare(parent::version, '1.7.1') < 0)
-        {
-            throw new Exception('ParsedownExtra requires a later version of Parsedown');
-        }
-
         $this->BlockTypes[':'] []= 'DefinitionList';
         $this->BlockTypes['*'] []= 'Abbreviation';
 

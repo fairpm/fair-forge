@@ -31,8 +31,6 @@ namespace AspireBuild\Tools\Sideways;
 
 class Sideways
 {
-    const version = '1.8.0';
-
     function text($text)
     {
         $Elements = $this->textElements($text);
