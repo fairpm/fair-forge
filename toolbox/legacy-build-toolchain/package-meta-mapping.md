@@ -44,7 +44,7 @@ Max readme.txt file size is 10k for .org
 | -------- | --------- | ----------- | ----------- |
 | id | yes | A valid DID. | no, can add |
 | type | yes | A string that conforms to the rules of type. | no, can infer |
-| license | yes | A string that conforms to the rules of license | yes |
+| [license](https://github.com/fairpm/fair-protocol/blob/main/specification.md#license) | yes | A string that conforms to the rules of license | yes |
 | [authors](https://github.com/fairpm/fair-protocol/blob/main/specification.md#authors) | yes | A list that includes name with optional url and email |  yes |
 | [security](https://github.com/fairpm/fair-protocol/blob/main/specification.md#security) | yes | A list that conforms to the rules of security |  no, can infer |
 | [releases](https://github.com/fairpm/fair-protocol/blob/main/specification.md#releases) | yes | A formatted [Release Document](https://github.com/fairpm/fair-protocol/blob/main/specification.md#release-document) |  yes |
@@ -78,23 +78,29 @@ Max readme.txt file size is 10k for .org
 | _links      | no        | [HAL links][hal], with [defined relationships](#links-repo)                    | no           |
 
 
+
+
 ## Summary: FAIR Package-Meta Mapping to Legacy Source
 
-| FAIR Meta   | Explicit?     | Source               |
-| ----------- | ------------- | -------------------- |
-| id          | Yes, Assigned | internally-generated |
-| type        | Yes           | |
-| license     | Yes           | |
-| authors     | Yes           | |
-| security    | Yes           | |
-| releases    | Yes           | |
-| slug        | Yes           | |
-| name        | Yes           | |
-| description | Yes           | |
-| keywords    | Yes           | |
-| sections    | Yes           | |
-| _links      | Yes           | |
+| FAIR Meta   | Explicit?     | Source                              | FAIR Format        |
+| ----------- | ------------- | ----------------------------------- | ------------------ |
+| id          | Yes, Assigned | internally-generated                | DID:PLC or DID:Web |
+| type        | Yes           | `wp-plugin` `wp-theme` or `wp-core` |  |
+| license     | Infer/convert | readme.txt & plugin headers         | [SPDX License Expression](https://spdx.github.io/spdx-spec/v3.0.1/annexes/spdx-license-expressions/); the protocol doesn't call for a url or license file, but should be included; make this json instead? WP meta has License URI & should contain a file copy |
+| authors     | Yes           | `contributors` in readme.txt & `authors` in plugin headers; extend via profiles.wordpress.org/[username] |
+| security    | Yes           | Use author/contributor if individual, else WordPress.org url | json doc with author name, url, email if available; social media links; if Bluesky link available, add user's DID:PLC |
+| releases    | Yes           | Change Log, SVN                     | Release Document   |
+| slug        | Yes           | .org Source                         |                    |
+| name        | Yes           | readme.txt & plugin headers         |                    |
+| description | Yes           | short description from readme.txt   |                    |
+| keywords    | Yes           | tags                                |                    |
+| sections    | Yes           | (various)                           | Sections Document  |
+| _links      | no; infer?    |                                     |                    |
 
-DID Document
-Metadata Document
-Repository Document
+
+## DID Document
+
+## Metadata Document
+
+## Repository Document
+
