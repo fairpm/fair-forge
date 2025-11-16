@@ -27,7 +27,7 @@ class CommonMarkStrictTest extends TestCase
     #[DataProvider('data')]
     public function testExample($id, $section, $markdown, $expectedHtml): void
     {
-        $actualHtml = $this->sideways->text($markdown);
+        $actualHtml = $this->sideways->renderToHtml($markdown);
         $this->assertEquals($expectedHtml, $actualHtml);
     }
 

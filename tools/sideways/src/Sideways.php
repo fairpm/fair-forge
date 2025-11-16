@@ -29,6 +29,7 @@
 
 namespace AspireBuild\Tools\Sideways;
 
+use AspireBuild\Util\Regex;
 use Closure;
 use DOMDocument;
 use DOMElement;
@@ -36,6 +37,7 @@ use InvalidArgumentException;
 
 class Sideways
 {
+    //region Constructor & Properties
 
     public function __construct(
         protected readonly bool $breaksEnabled = false,
@@ -47,8 +49,8 @@ class Sideways
     ) {
 
         if ($extra) {
-            $this->BlockTypes[':'] [] = 'DefinitionList';
-            $this->BlockTypes['*'] [] = 'Abbreviation';
+            $this->BlockTypes[':'][] = 'DefinitionList';
+            $this->BlockTypes['*'][] = 'Abbreviation';
 
             # identify footnote definitions before reference definitions
             array_unshift($this->BlockTypes['['], 'Footnote');
@@ -56,43 +58,6 @@ class Sideways
             # identify footnote markers before before links
             array_unshift($this->InlineTypes['['], 'FootnoteMarker');
         }
-    }
-
-    public function text($text): string
-    {
-        $Elements = $this->textElements($text);
-        $markup = $this->elements($Elements);
-        $markup = trim($markup, "\n");
-
-        if ($this->extra) {
-            $markup = preg_replace('/<\/dl>\s+<dl>\s+/', '', $markup);
-
-            if (isset($this->DefinitionData['Footnote'])) {
-                $Element = $this->buildFootnoteElement();
-
-                $markup .= "\n" . $this->element($Element);
-            }
-        }
-
-        return $markup;
-    }
-
-    protected function textElements($text): array
-    {
-        // make sure no definitions are set
-        $this->DefinitionData = [];
-
-        // standardize line breaks
-        $text = str_replace(["\r\n", "\r"], "\n", $text);
-
-        // remove surrounding line breaks
-        $text = trim($text, "\n");
-
-        // split text into lines
-        $lines = explode("\n", $text);
-
-        // iterate through lines to identify blocks
-        return $this->linesElements($lines);
     }
 
     protected array $safeLinksWhitelist = [
@@ -139,10 +104,175 @@ class Sideways
         '~' => ['FencedCode'],
     ];
 
-
     protected array $unmarkedBlockTypes = [
         'Code',
     ];
+
+    protected string $regexAttribute = '(?:[#.][-\w]+[ ]*)';
+
+    protected array $InlineTypes = [
+        '!'  => ['Image'],
+        '&'  => ['SpecialCharacter'],
+        '*'  => ['Emphasis'],
+        ':'  => ['Url'],
+        '<'  => ['UrlTag', 'EmailTag', 'Markup'],
+        '['  => ['Link'],
+        '_'  => ['Emphasis'],
+        '`'  => ['Code'],
+        '~'  => ['Strikethrough'],
+        '\\' => ['EscapeSequence'],
+    ];
+
+    protected string $inlineMarkerList = '!*_&[:<`~\\';
+
+    protected array $specialCharacters = [
+        '\\',
+        '`',
+        '*',
+        '_',
+        '{',
+        '}',
+        '[',
+        ']',
+        '(',
+        ')',
+        '>',
+        '#',
+        '+',
+        '-',
+        '.',
+        '!',
+        '|',
+        '~',
+    ];
+
+    protected array $StrongRegex = [
+        '*' => '/^[*]{2}((?:\\\\\*|[^*]|[*][^*]*+[*])+?)[*]{2}(?![*])/s',
+        '_' => '/^__((?:\\\\_|[^_]|_[^_]*+_)+?)__(?!_)/us',
+    ];
+
+    protected array $EmRegex = [
+        '*' => '/^[*]((?:\\\\\*|[^*]|[*][*][^*]+?[*][*])+?)[*](?![*])/s',
+        '_' => '/^_((?:\\\\_|[^_]|__[^_]*__)+?)_(?!_)\b/us',
+    ];
+
+    protected string $regexHtmlAttribute = '[a-zA-Z_:][\w:.-]*+(?:\s*+=\s*+(?:[^"\'=<>`\s]+|"[^"]*+"|\'[^\']*+\'))?+';
+
+    protected array $voidElements = [
+        'area',
+        'base',
+        'br',
+        'col',
+        'command',
+        'embed',
+        'hr',
+        'img',
+        'input',
+        'link',
+        'meta',
+        'param',
+        'source',
+    ];
+
+    protected array $textLevelElements = [
+        'a',
+        'br',
+        'bdo',
+        'abbr',
+        'blink',
+        'nextid',
+        'acronym',
+        'basefont',
+        'b',
+        'em',
+        'big',
+        'cite',
+        'small',
+        'spacer',
+        'listing',
+        'i',
+        'rp',
+        'del',
+        'code',
+        'strike',
+        'marquee',
+        'q',
+        'rt',
+        'ins',
+        'font',
+        'strong',
+        's',
+        'tt',
+        'kbd',
+        'mark',
+        'u',
+        'xm',
+        'sub',
+        'nobr',
+        'sup',
+        'ruby',
+        'var',
+        'span',
+        'wbr',
+        'time',
+    ];
+
+    //region Mutable State
+
+    protected array $DefinitionData = [];
+
+    private int $footnoteCount = 0;     // "Extra"
+
+    private string $currentAbreviation; // "Extra"
+
+    private string $currentMeaning;     // "Extra"
+
+    //endregion
+
+    //endregion
+
+    //region Public API
+
+    public function renderToHtml($text): string
+    {
+        $Elements = $this->textElements($text);
+        $markup = $this->elements($Elements);
+        $markup = trim($markup, "\n");
+
+        if ($this->extra) {
+            $markup = Regex::replace('#</dl>\s+<dl>\s+#', '', $markup);
+
+            if (isset($this->DefinitionData['Footnote'])) {
+                $Element = $this->buildFootnoteElement();
+
+                $markup .= "\n" . $this->element($Element);
+            }
+        }
+
+        return $markup;
+    }
+
+    //endregion
+
+    //region Private API
+
+    protected function textElements($text): array
+    {
+        // make sure no definitions are set
+        $this->DefinitionData = [];
+
+        // standardize line breaks
+        $text = str_replace(["\r\n", "\r"], "\n", $text);
+
+        // remove surrounding line breaks
+        $text = trim($text, "\n");
+
+        // split text into lines
+        $lines = explode("\n", $text);
+
+        // iterate through lines to identify blocks
+        return $this->linesElements($lines);
+    }
 
     protected function lines(array $lines): string
     {
@@ -483,15 +613,18 @@ class Sideways
             ],
         ];
 
+        $arg = $Block['element']['handler']['argument'];
         if ($this->extra
-            && preg_match('/[ #]*{(' . $this->regexAttribute . '+)}[ ]*$/', $Block['element']['handler']['argument'],
-                $matches, PREG_OFFSET_CAPTURE)) {
+            && \Safe\preg_match(
+                '/[ #]*{(' . $this->regexAttribute . '+)}[ ]*$/',
+                $arg,
+                $matches,
+                PREG_OFFSET_CAPTURE
+            )) {
             $attributeString = $matches[1][0];
 
             $Block['element']['attributes'] = $this->parseAttributeData($attributeString);
-
-            $Block['element']['handler']['argument'] = substr($Block['element']['handler']['argument'], 0,
-                $matches[0][1]);
+            $Block['element']['handler']['argument'] = substr($arg, 0, $matches[0][1]);
         }
 
         return $Block;
@@ -636,7 +769,7 @@ class Sideways
         }
 
         if (!isset($Block['interrupted'])) {
-            $text = preg_replace('/^[ ]{0,' . $requiredIndent . '}+/', '', $Line['body']);
+            $text = Regex::replace('/^[ ]{0,' . $requiredIndent . '}+/', '', $Line['body']);
 
             $Block['li']['handler']['argument'] [] = $text;
 
@@ -803,7 +936,6 @@ class Sideways
         }
         return null;
     }
-
 
     protected function blockMarkupContinue($Line, array $Block): ?array
     {
@@ -1073,23 +1205,7 @@ class Sideways
         return $Block;
     }
 
-    protected array $InlineTypes = [
-        '!'  => ['Image'],
-        '&'  => ['SpecialCharacter'],
-        '*'  => ['Emphasis'],
-        ':'  => ['Url'],
-        '<'  => ['UrlTag', 'EmailTag', 'Markup'],
-        '['  => ['Link'],
-        '_'  => ['Emphasis'],
-        '`'  => ['Code'],
-        '~'  => ['Strikethrough'],
-        '\\' => ['EscapeSequence'],
-    ];
-
-
-    protected string $inlineMarkerList = '!*_&[:<`~\\';
-
-    public function line($text, $nonNestables = []): string
+    protected function line($text, $nonNestables = []): string
     {
         return $this->elements($this->lineElements($text, $nonNestables));
     }
@@ -1223,7 +1339,7 @@ class Sideways
         if (preg_match('/^([' . $marker . ']++)[ ]*+(.+?)[ ]*+(?<![' . $marker . '])\1(?!' . $marker . ')/s',
             $Excerpt['text'], $matches)) {
             $text = $matches[2];
-            $text = preg_replace('/[ ]*+\n/', ' ', $text);
+            $text = Regex::replace('/[ ]*+\n/', ' ', $text);
 
             return [
                 'extent'  => strlen($matches[0]),
@@ -1529,7 +1645,6 @@ class Sideways
         return null;
     }
 
-
     /** @noinspection PhpUnused */
     protected function unmarkedText($text): string
     {
@@ -1756,7 +1871,7 @@ class Sideways
 
     public function parse($text): string
     {
-        return $this->text($text);
+        return $this->renderToHtml($text);
     }
 
     protected function sanitiseElement(array $Element): array
@@ -1819,102 +1934,7 @@ class Sideways
         return stripos($string, strtolower($needle)) === 0;
     }
 
-    protected array $DefinitionData = [];
-
-    protected array $specialCharacters = [
-        '\\',
-        '`',
-        '*',
-        '_',
-        '{',
-        '}',
-        '[',
-        ']',
-        '(',
-        ')',
-        '>',
-        '#',
-        '+',
-        '-',
-        '.',
-        '!',
-        '|',
-        '~',
-    ];
-
-    protected array $StrongRegex = [
-        '*' => '/^[*]{2}((?:\\\\\*|[^*]|[*][^*]*+[*])+?)[*]{2}(?![*])/s',
-        '_' => '/^__((?:\\\\_|[^_]|_[^_]*+_)+?)__(?!_)/us',
-    ];
-
-    protected array $EmRegex = [
-        '*' => '/^[*]((?:\\\\\*|[^*]|[*][*][^*]+?[*][*])+?)[*](?![*])/s',
-        '_' => '/^_((?:\\\\_|[^_]|__[^_]*__)+?)_(?!_)\b/us',
-    ];
-
-    protected string $regexHtmlAttribute = '[a-zA-Z_:][\w:.-]*+(?:\s*+=\s*+(?:[^"\'=<>`\s]+|"[^"]*+"|\'[^\']*+\'))?+';
-
-    protected array $voidElements = [
-        'area',
-        'base',
-        'br',
-        'col',
-        'command',
-        'embed',
-        'hr',
-        'img',
-        'input',
-        'link',
-        'meta',
-        'param',
-        'source',
-    ];
-
-    protected array $textLevelElements = [
-        'a',
-        'br',
-        'bdo',
-        'abbr',
-        'blink',
-        'nextid',
-        'acronym',
-        'basefont',
-        'b',
-        'em',
-        'big',
-        'cite',
-        'small',
-        'spacer',
-        'listing',
-        'i',
-        'rp',
-        'del',
-        'code',
-        'strike',
-        'marquee',
-        'q',
-        'rt',
-        'ins',
-        'font',
-        'strong',
-        's',
-        'tt',
-        'kbd',
-        'mark',
-        'u',
-        'xm',
-        'sub',
-        'nobr',
-        'sup',
-        'ruby',
-        'var',
-        'span',
-        'wbr',
-        'time',
-    ];
-
-
-    // "Extra"
+    //region "Extra" methods
 
     protected function blockAbbreviation($Line): ?array
     {
@@ -2024,8 +2044,6 @@ class Sideways
         return $Block;
     }
 
-    private int $footnoteCount = 0;
-
     protected function inlineFootnoteMarker($Excerpt): ?array
     {
         if (preg_match('/^\[\^(.+?)\]/', $Excerpt['text'], $matches)) {
@@ -2059,9 +2077,6 @@ class Sideways
         return null;
     }
 
-    private string $currentAbreviation;
-    private string $currentMeaning;
-
     protected function insertAbreviation(array $Element): array
     {
         if (isset($Element['text'])) {
@@ -2085,6 +2100,7 @@ class Sideways
         return $Element;
     }
 
+
     //region "Extra" Utility Methods (Apparently Unused)
 
     protected function addDdElement(array $Line, array $Block): array
@@ -2104,7 +2120,7 @@ class Sideways
         ];
 
         if (isset($Block['interrupted'])) {
-            $Block['dd']['handler']['function'] = $this->textElements(...);;
+            $Block['dd']['handler']['function'] = $this->textElements(...);
 
             unset($Block['interrupted']);
         }
@@ -2249,7 +2265,7 @@ class Sideways
 
             $DOMDocument->documentElement->removeAttribute('markdown');
 
-            $elementText = "\n" . $this->text($elementText) . "\n";
+            $elementText = "\n" . $this->renderToHtml($elementText) . "\n";
         } else {
             foreach ($DOMDocument->documentElement->childNodes as $Node) {
                 $nodeMarkup = $DOMDocument->saveHTML($Node);
@@ -2274,10 +2290,12 @@ class Sideways
         return $A['number'] - $B['number'];
     }
 
-    protected string $regexAttribute = '(?:[#.][-\w]+[ ]*)';
 
     //endregion
 
+    //endregion
+
+    //region Dispatching
 
     protected function _dispatch(string $name, string $type): ?Closure {
         /** @noinspection PhpExpressionAlwaysNullInspection (false positive) */
@@ -2343,4 +2361,8 @@ class Sideways
             default => throw new InvalidArgumentException("Invalid method type: $type"),
         };
     }
+
+    //endregion
+
+    //endregion
 }

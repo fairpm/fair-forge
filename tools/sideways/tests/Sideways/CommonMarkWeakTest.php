@@ -45,7 +45,7 @@ class CommonMarkWeakTest extends TestCase
     {
         $expectedHtml = $this->cleanupHtml($expectedHtml);
 
-        $actualHtml = $this->sideways->text($markdown);
+        $actualHtml = $this->sideways->renderToHtml($markdown);
         $actualHtml = $this->cleanupHtml($actualHtml);
 
         $this->assertEquals($expectedHtml, $actualHtml);
