@@ -6,7 +6,6 @@ use AspireBuild\Tools\Sideways\Sideways;
 use AspireBuild\Util\Regex;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\TestCase;
 
 /**
  * Test Sideways against the CommonMark spec
@@ -14,7 +13,7 @@ use PHPUnit\Framework\TestCase;
  * @link http://commonmark.org/ CommonMark
  */
 #[Group('commonmark')]
-class CommonMarkStrictTest extends TestCase
+class CommonMarkStrictTest extends SidewaysTestCase
 {
     protected Sideways $sideways;
 

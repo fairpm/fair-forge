@@ -1,15 +1,12 @@
 <?php
 
-namespace Sideways;
+namespace Tests\AspireBuild\Tools\Sideways;
 
 use AspireBuild\Tools\Sideways\Sideways;
 use DirectoryIterator;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\TestCase;
-use Tests\AspireBuild\Tools\Sideways\TrustDelegatedExtension;
-use Tests\AspireBuild\Tools\Sideways\UnsafeExtension;
 
-class SidewaysExtraTest extends TestCase
+class SidewaysExtraTest extends SidewaysTestCase
 {
     #[DataProvider('data')]
     public function test_data_dir($test, $dir): void

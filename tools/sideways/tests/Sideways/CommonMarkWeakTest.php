@@ -6,8 +6,6 @@ use AspireBuild\Tools\Sideways\Sideways;
 use AspireBuild\Util\Regex;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\TestCase;
-use RuntimeException;
 
 /**
  * Test Sideways against the CommonMark spec, but less aggressive
@@ -22,7 +20,7 @@ use RuntimeException;
  * @link http://commonmark.org/ CommonMark
  */
 #[Group('commonmark')]
-class CommonMarkWeakTest extends TestCase
+class CommonMarkWeakTest extends SidewaysTestCase
 {
     protected string $textLevelElementRegex;
     protected Sideways $sideways;

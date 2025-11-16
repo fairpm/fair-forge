@@ -5,9 +5,8 @@ namespace Tests\AspireBuild\Tools\Sideways;
 use AspireBuild\Tools\Sideways\Sideways;
 use DirectoryIterator;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\TestCase;
 
-class SidewaysTest extends TestCase
+class SidewaysTest extends SidewaysTestCase
 {
 
     #[DataProvider('data')]
