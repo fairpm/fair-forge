@@ -2,8 +2,14 @@
 
 namespace AspireBuild\Tools\WpPlugin;
 
-use AspireBuild\Tools\Sideways\Sideways;
 use AspireBuild\Util\Regex;
+use League\CommonMark\Environment\Environment;
+use League\CommonMark\Extension\Autolink\AutolinkExtension;
+use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
+use League\CommonMark\Extension\DisallowedRawHtml\DisallowedRawHtmlExtension;
+use League\CommonMark\Extension\Strikethrough\StrikethroughExtension;
+use League\CommonMark\Extension\Table\TableExtension;
+use League\CommonMark\MarkdownConverter;
 use Normalizer;
 
 // Note: this class is solely concerned with parsing the _structure_ of the readme file, including rendering markdown
@@ -305,11 +311,14 @@ class ReadmeParser
             }
 
             // Stop only after a ## Markdown header, not a ###.
-            if (('=' === $trimmed[0] && isset($trimmed[1]) && '=' === $trimmed[1])
-                || ('#' === $trimmed[0] && isset($trimmed[1]) && '#' === $trimmed[1] && isset($trimmed[2])
-                    && '#'
-                    !== $trimmed[2])
-            ) {
+
+            // the original insanity:
+            // if (
+            //     ('=' === $trimmed[0] && isset($trimmed[1]) && '=' === $trimmed[1])
+            //     || ('#' === $trimmed[0] && isset($trimmed[1]) && '#' === $trimmed[1] && isset($trimmed[2]) && '#' !== $trimmed[2])
+            // ) {
+            // if (Regex::matches('/^==|##(?:[^#]|$)/', $trimmed)) { // nope, not the same result
+            if (str_starts_with($trimmed, '==') || (str_starts_with($trimmed, '##') && !str_starts_with($trimmed, '###'))) {
                 if (!empty($section_name)) {
                     $sections[$section_name] .= trim($current);
                 }
@@ -370,11 +379,30 @@ class ReadmeParser
 
     private function render_markdown(string $text): string
     {
-        return new Sideways(safeMode: true)->renderToHtml($text);
-
-        // return new Sideways(source: $text, urlsLinked: true, safeMode: true)->toHtml();
+        return $this->get_markdown_converter()->convert($text);
     }
 
+    private function get_markdown_converter(): MarkdownConverter
+    {
+        static $converter;
+        return $converter ??= $this->_get_markdown_converter();
+    }
+
+    private function _get_markdown_converter(): MarkdownConverter
+    {
+        $config = [];
+        $environment = new Environment($config);
+        $environment->addExtension(new CommonMarkCoreExtension());
+        // $environment->addExtension(new GithubFlavoredMarkdownExtension());
+
+        $environment->addExtension(new AutolinkExtension());
+        $environment->addExtension(new DisallowedRawHtmlExtension());
+        // $environment->addExtension(new SmartPunctExtension());
+        $environment->addExtension(new StrikethroughExtension());
+        $environment->addExtension(new TableExtension());
+
+        return new MarkdownConverter($environment);
+    }
 
     /* disabled code below
 

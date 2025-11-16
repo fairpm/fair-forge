@@ -12,7 +12,8 @@
         "ext-mbstring": "*",
         "symfony/var-dumper": "^7.3",
         "ext-dom": "*",
-        "ext-libxml": "*"
+        "ext-libxml": "*",
+        "league/commonmark": "^2.7"
     },
     "require-dev": {
         "roave/security-advisories": "dev-latest",
