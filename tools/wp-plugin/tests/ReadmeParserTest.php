@@ -278,7 +278,7 @@ class ReadmeParserTest extends TestCase
             as you do his bidding in the hopes that you shall be among those to watch the flames which consume the universe
             to base ash so that you may be be last to be burned in unholy eldritch fire.
 
-            _Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn_
+            <script lang="eldritch">Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn</script>
 
             Oh, and it also shows lyrics from Louis Armstrong's famous song <title>Hello Dolly</title> on your admin dashboard.
 
@@ -303,7 +303,8 @@ class ReadmeParserTest extends TestCase
             Screenshots go here but only things in list tags make it into the property
 
             * anything in a markdown list will do
-            * it doesn't seem to have to be a link
+            * it can have arbitrary markup <a href="http://google.com" onclick="alert('HE COMES')">and links</a>
+            * ![the horror that awaits you](https://comicskingdom.com/_next/image?url=https%3A%2F%2Fwp.comicskingdom.com%2Fcomicskingdom-redesign-uploads-production%2F1995%2F12%2FFC-Sunday-8-19-Print-copy-scaled.jpg&w=3840&q=75)
 
             ## Changelog
 
@@ -336,14 +337,15 @@ class ReadmeParserTest extends TestCase
             '_warnings'         => [],
         ], (array)$readme);
 
-        // Note that <title> is specifically escaped as &lt;title> by DisallowedRawHtmlExtension
+        // Note that the opening brackets of <script> and <title> are specifically escaped by DisallowedRawHtmlExtension
+
         $expected_description = <<<"END"
             <p>This is not just a plugin, it symbolizes the mounting horror and insanity of an entire generation.  Ia! Ia! Cthulhu Ftagn!.</p>
             <p>When activated you will notice nothing, but gradually care about nothing, until your soul is an empty vessel
             into which the visions of his grand dread majesty will materialize and take form through your husk of a body
             as you do his bidding in the hopes that you shall be among those to watch the flames which consume the universe
             to base ash so that you may be be last to be burned in unholy eldritch fire.</p>
-            <p><em>Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn</em></p>
+            &lt;script lang="eldritch">Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn&lt;/script>
             <p>Oh, and it also shows lyrics from Louis Armstrong's famous song &lt;title>Hello Dolly&lt;/title> on your admin dashboard.
             other notes here... (parsed or not, no idea)</p>
 
@@ -360,7 +362,8 @@ class ReadmeParserTest extends TestCase
             <p>Screenshots go here but only things in list tags make it into the property</p>
             <ul>
             <li>anything in a markdown list will do</li>
-            <li>it doesn't seem to have to be a link</li>
+            <li>it can have arbitrary markup <a href="http://zalgo.org" onclick="alert('HE COMES')">and links</a></li>
+            <li><img src="https://comicskingdom.com/_next/image?url=https%3A%2F%2Fwp.comicskingdom.com%2Fcomicskingdom-redesign-uploads-production%2F1995%2F12%2FFC-Sunday-8-19-Print-copy-scaled.jpg&amp;w=3840&amp;q=75" alt="the horror that awaits you" /></li>
             </ul>
 
             END;
