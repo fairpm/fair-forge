@@ -286,9 +286,9 @@ class ReadmeParserTest extends TestCase
 
             Your husk will be discarded when it is no longer of use.  You are not to concern yourself with it.
 
-            ## FAQ
+            ## Frequently Asked Questions
 
-            Note that "Frequently Asked Questions" is apparently not recognized as a section despite the alias.
+            This is some stuff on top of the FAQ section.
 
             ### Is this a FAQ?
 
@@ -350,7 +350,7 @@ class ReadmeParserTest extends TestCase
             END;
 
         $expected_faq = <<<'END'
-            <p>Note that &quot;Frequently Asked Questions&quot; is apparently not recognized as a section despite the alias.</p>
+            <p>This is some stuff on top of the FAQ section.</p>
             <h3>Is this a FAQ?</h3>
             <p>No.</p>
 

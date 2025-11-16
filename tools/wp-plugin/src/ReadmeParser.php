@@ -123,20 +123,25 @@ class ReadmeParser
         return normalizer_normalize($str, Normalizer::FORM_C);
     }
 
-    private function parse_first_nonblank_line(): string
+    private function parse_first_nonblank_line(): ?string
     {
-        while (($line = array_shift($this->input)) !== null) {
+        while (($line = $this->_input_shift()) !== null) {
             if (trim($line) !== '') {
                 return $line;
             }
         }
-        return $line;
+        return null;
     }
 
     // at this point i may as well use a deque.  TODO: use the ds extension and do that.
     private function _input_put_back(string $line): void
     {
         array_unshift($this->input, $line);
+    }
+
+    private function _input_shift(): ?string
+    {
+        return array_shift($this->input);
     }
 
     private function _input_peek(): ?string
@@ -202,9 +207,9 @@ class ReadmeParser
             }
 
             $last_line_was_blank = false;
-        } while (($line = array_shift($this->input)) !== null);
+        } while (($line = $this->_input_shift()) !== null);
 
-        array_unshift($this->input, $line);
+        $this->_input_put_back($line);
 
         return $headers;
     }
@@ -282,14 +287,14 @@ class ReadmeParser
     {
         $short_description = '';
 
-        while (($line = array_shift($this->input)) !== null) {
+        while (($line = $this->_input_shift()) !== null) {
             $trimmed = trim($line);
             if (empty($trimmed)) {
                 continue;
             }
 
             if (Regex::matches('/^(?:==|##)/', $trimmed)) {
-                array_unshift($this->input, $line);
+                $this->_input_put_back($line);
                 break;
             }
 
@@ -303,7 +308,7 @@ class ReadmeParser
         $sections = array_fill_keys(self::expected_sections, '');
         $current = '';
         $section_name = '';
-        while (($line = array_shift($this->input)) !== null) {
+        while (($line = $this->_input_shift()) !== null) {
             $trimmed = trim($line);
             if (empty($trimmed)) {
                 $current .= "\n";
@@ -318,18 +323,19 @@ class ReadmeParser
             //     || ('#' === $trimmed[0] && isset($trimmed[1]) && '#' === $trimmed[1] && isset($trimmed[2]) && '#' !== $trimmed[2])
             // ) {
             // if (Regex::matches('/^==|##(?:[^#]|$)/', $trimmed)) { // nope, not the same result
-            if (str_starts_with($trimmed, '==') || (str_starts_with($trimmed, '##') && !str_starts_with($trimmed, '###'))) {
+            if (str_starts_with($trimmed, '==')
+                || (str_starts_with($trimmed, '##')
+                    && !str_starts_with($trimmed, '###'))) {
                 if (!empty($section_name)) {
                     $sections[$section_name] .= trim($current);
                 }
 
                 $current = '';
                 $section_title = trim($line, "#= \t");
-                $section_name = self::alias_sections[$section_name]
-                    ??
-                    strtolower(str_replace(' ', '_', $section_title));
+                $section_key = strtolower(Regex::replace('/\W+/', '_', $section_title));
+                $section_name = self::alias_sections[$section_key] ?? $section_key;
 
-                // If we encounter an unknown section header, include the provided Title, we'll filter it to other_notes later.
+                // move any unknown sections into other_notes
                 if (!in_array($section_name, self::expected_sections, true)) {
                     $current .= "<h3>$section_title</h3>";
                     $section_name = 'other_notes';
