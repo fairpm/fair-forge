@@ -47,7 +47,6 @@ class Sideways
         protected readonly bool $strictMode = false,
         protected readonly bool $extra = false,
     ) {
-
         if ($extra) {
             $this->BlockTypes[':'][] = 'DefinitionList';
             $this->BlockTypes['*'][] = 'Abbreviation';
@@ -219,7 +218,11 @@ class Sideways
 
     //region Mutable State
 
-    protected array $DefinitionData = [];
+    protected array $_abbreviations = [];
+
+    protected array $_footnotes = [];
+
+    protected array $_references = [];
 
     private int $footnoteCount = 0;     // "Extra"
 
@@ -242,9 +245,8 @@ class Sideways
         if ($this->extra) {
             $markup = Regex::replace('#</dl>\s+<dl>\s+#', '', $markup);
 
-            if (isset($this->DefinitionData['Footnote'])) {
+            if ($this->_footnotes) {
                 $Element = $this->buildFootnoteElement();
-
                 $markup .= "\n" . $this->element($Element);
             }
         }
@@ -258,7 +260,7 @@ class Sideways
 
     protected function textElements(string $text): array
     {
-        $this->DefinitionData = [];
+        $this->resetState();
         $text = str_replace(["\r\n", "\r"], "\n", $text);
         $text = trim($text, "\n");
         $lines = explode("\n", $text);
@@ -390,6 +392,15 @@ class Sideways
 
         return $Component['element'];
     }
+
+    protected function resetState(): void
+    {
+        $this->_abbreviations = [];
+        $this->_footnotes = [];
+        $this->_references = [];
+    }
+
+    //region Block Methods
 
     protected function blockCode(array $Line, ?array $Block = null): ?array
     {
@@ -590,7 +601,7 @@ class Sideways
                 '/[ #]*{(' . $this->regexAttribute . '+)}[ ]*$/',
                 $arg,
                 $matches,
-                PREG_OFFSET_CAPTURE
+                PREG_OFFSET_CAPTURE,
             )) {
             $attributeString = $matches[1][0];
 
@@ -599,7 +610,6 @@ class Sideways
         }
 
         return $Block;
-
     }
 
     protected function blockList($Line, ?array $CurrentBlock = null): ?array
@@ -935,8 +945,7 @@ class Sideways
             $Block['depth']++;
         }
 
-        if (preg_match('/(.*?)<\/' . $Block['name'] . '>[ ]*$/i', $Line['text']))
-        {
+        if (preg_match('/(.*?)<\/' . $Block['name'] . '>[ ]*$/i', $Line['text'])) {
             if ($Block['depth'] > 0) {
                 $Block['depth']--;
             } else {
@@ -978,7 +987,7 @@ class Sideways
                 'title' => $matches[3] ?? null,
             ];
 
-            $this->DefinitionData['Reference'][$id] = $Data;
+            $this->_references[$id] = $Data;
 
             return [
                 'element' => [],
@@ -1288,16 +1297,14 @@ class Sideways
             $text,
         );
 
-        if ($this->extra && isset($this->DefinitionData['Abbreviation'])) {
-            foreach ($this->DefinitionData['Abbreviation'] as $abbreviation => $meaning) {
-                $this->currentAbreviation = $abbreviation;
-                $this->currentMeaning = $meaning;
+        foreach (($this->_abbreviations ?? []) as $abbreviation => $meaning) {
+            $this->currentAbreviation = $abbreviation;
+            $this->currentMeaning = $meaning;
 
-                $Inline['element'] = $this->elementApplyRecursiveDepthFirst(
-                    $this->insertAbreviation(...),
-                    $Inline['element'],
-                );
-            }
+            $Inline['element'] = $this->elementApplyRecursiveDepthFirst(
+                $this->insertAbbreviation(...),
+                $Inline['element'],
+            );
         }
 
         return $Inline;
@@ -1475,11 +1482,11 @@ class Sideways
                 $definition = strtolower($Element['handler']['argument']);
             }
 
-            if (!isset($this->DefinitionData['Reference'][$definition])) {
+            if (!isset($this->_references[$definition])) {
                 return null;
             }
 
-            $Definition = $this->DefinitionData['Reference'][$definition];
+            $Definition = $this->_references[$definition];
 
             $Element['attributes']['href'] = $Definition['url'];
             $Element['attributes']['title'] = $Definition['title'];
@@ -1615,6 +1622,8 @@ class Sideways
         }
         return null;
     }
+
+    //endregion
 
     /** @noinspection PhpUnused */
     protected function unmarkedText(string $text): string
@@ -1904,7 +1913,7 @@ class Sideways
     protected function blockAbbreviation(array $Line): ?array
     {
         if (preg_match('/^\*\[(.+?)\]:[ ]*(.+?)[ ]*$/', $Line['text'], $matches)) {
-            $this->DefinitionData['Abbreviation'][$matches[1]] = $matches[2];
+            $this->_abbreviations[$matches[1]] = $matches[2];
 
             return ['hidden' => true];
         }
@@ -1945,7 +1954,7 @@ class Sideways
 
     protected function blockFootnoteComplete(array $Block): array
     {
-        $this->DefinitionData['Footnote'][$Block['label']] = [
+        $this->_footnotes[$Block['label']] = [
             'text'   => $Block['text'],
             'count'  => null,
             'number' => null,
@@ -2014,23 +2023,23 @@ class Sideways
         if (preg_match('/^\[\^(.+?)\]/', $Excerpt['text'], $matches)) {
             $name = $matches[1];
 
-            if (!isset($this->DefinitionData['Footnote'][$name])) {
+            if (!isset($this->_footnotes[$name])) {
                 return null;
             }
 
-            $this->DefinitionData['Footnote'][$name]['count']++;
+            $this->_footnotes[$name]['count']++;
 
-            if (!isset($this->DefinitionData['Footnote'][$name]['number'])) {
-                $this->DefinitionData['Footnote'][$name]['number'] = ++$this->footnoteCount; # » &
+            if (!isset($this->_footnotes[$name]['number'])) {
+                $this->_footnotes[$name]['number'] = ++$this->footnoteCount; # » &
             }
 
             $Element = [
                 'name'       => 'sup',
-                'attributes' => ['id' => 'fnref' . $this->DefinitionData['Footnote'][$name]['count'] . ':' . $name],
+                'attributes' => ['id' => 'fnref' . $this->_footnotes[$name]['count'] . ':' . $name],
                 'element'    => [
                     'name'       => 'a',
                     'attributes' => ['href' => '#fn:' . $name, 'class' => 'footnote-ref'],
-                    'text'       => $this->DefinitionData['Footnote'][$name]['number'],
+                    'text'       => $this->_footnotes[$name]['number'],
                 ],
             ];
 
@@ -2042,7 +2051,7 @@ class Sideways
         return null;
     }
 
-    protected function insertAbreviation(array $Element): array
+    protected function insertAbbreviation(array $Element): array
     {
         if (isset($Element['text'])) {
             $Element['elements'] = self::pregReplaceElements(
@@ -2064,7 +2073,6 @@ class Sideways
 
         return $Element;
     }
-
 
     //region "Extra" Utility Methods (Apparently Unused)
 
@@ -2109,18 +2117,18 @@ class Sideways
             ],
         ];
 
-        uasort($this->DefinitionData['Footnote'], fn($A, $B) => $A['number'] - $B['number']);
+        uasort($this->_footnotes, fn($A, $B) => $A['number'] - $B['number']);
 
-        foreach ($this->DefinitionData['Footnote'] as $definitionId => $DefinitionData) {
-            if (!isset($DefinitionData['number'])) {
+        foreach ($this->_footnotes as $definitionId => $definition) {
+            if (!isset($definition['number'])) {
                 continue;
             }
 
-            $text = $DefinitionData['text'];
+            $text = $definition['text'];
 
             $textElements = $this->textElements($text);
 
-            $numbers = range(1, $DefinitionData['count']);
+            $numbers = range(1, $definition['count']);
 
             $backLinkElements = [];
 
@@ -2256,7 +2264,8 @@ class Sideways
 
     //region Dispatching
 
-    protected function _dispatch(string $name, string $type): ?Closure {
+    protected function _dispatch(string $name, string $type): ?Closure
+    {
         /** @noinspection PhpExpressionAlwaysNullInspection (false positive) */
         return match ($name) {
             'block' => match ($type) {
