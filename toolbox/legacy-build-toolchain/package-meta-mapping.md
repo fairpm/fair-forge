@@ -38,12 +38,13 @@ Max readme.txt file size is 10k for .org
 - Update URI (used for disambiguation of slugs, [per dev note](https://make.wordpress.org/core/2021/06/29/introducing-update-uri-plugin-header-in-wordpress-5-8/))
 - Requires Plugins (comma-separated list of wp slugs) [per dev note](https://make.wordpress.org/core/2024/03/05/introducing-plugin-dependencies-in-wordpress-6-5/))
 
+
 ## [FAIR Metadata Document](https://github.com/fairpm/fair-protocol/blob/main/specification.md#metadata-document)
 
-| Property | Required? | Constraints | In WP Meta? |
-| -------- | --------- | ----------- | ----------- |
-| id | yes | A valid DID. | no, can add |
-| type | yes | A string that conforms to the rules of type. | no, can infer |
+| Property | Req'd | Constraints           | In WP Meta?   |
+| -------- | ----- | --------------------- | ------------- |
+| id       | yes   | A valid DID           | no, can add   |
+| type     | yes   | string, package type. | no, can infer |
 | [license](https://github.com/fairpm/fair-protocol/blob/main/specification.md#license) | yes | A string that conforms to the rules of license | yes |
 | [authors](https://github.com/fairpm/fair-protocol/blob/main/specification.md#authors) | yes | A list that includes name with optional url and email |  yes |
 | [security](https://github.com/fairpm/fair-protocol/blob/main/specification.md#security) | yes | A list that conforms to the rules of security |  no, can infer |
@@ -55,96 +56,130 @@ Max readme.txt file size is 10k for .org
 | [sections](https://github.com/fairpm/fair-protocol/blob/main/specification.md#sections) | no | A json map with defined keys for changelog, description, security; may include others | yes, yes, no |
 | [_links](https://github.com/fairpm/fair-protocol/blob/main/specification.md#_links) | no | [HAL links](https://datatracker.ietf.org/doc/html/draft-kelly-json-hal-11), with [defined relationships](https://github.com/fairpm/fair-protocol/blob/main/specification.md#links-metadata) | - |
 
-### Release Document
-
-| Property    | Required? | Constraints                                                          | In WP Meta?         |
-| ----------- | --------- | -------------------------------------------------------------------- | ------------------- |
-| version     | yes       | A string per [version](#property-version)                            | yes                 |
-| artifacts   | yes       | A json map per [artifacts](#property-artifacts)                      | no                  |
-| provides    | no        | A json map per [provides](#property-provides)                        | no, package type    |
-| requires    | no        | A json map per [requires](#property-requires)                        | maybe, dependencies |
-| suggests    | no        | A json map per [suggests](#property-suggests)                        | no                  |
-| auth        | no        | A json map per [auth](#property-auth) authentiation if required; type, hint, hint_url | no |
-| _links      | no        | [HAL links][hal], with [defined relationships](#links-release); links to Repository & Metadata Documents | no |
-
-### Repository Document
-
-| Property    | Required? | Constraints                                                                    | In WP Meta?  |
-| ----------- | --------- | ------------------------------------------------------------------------------ | ------------ |
-| name        | yes       | A string.                                                                      | no           |
-| maintainers | yes       | A json list per [maintainers](#property-repo-maintainers) (name, url, email)   | yes, authors |
-| security    | yes       | A json list per [security](#property-repo-security)                            | no, infer    |
-| privacy     | yes       | A URL string; link to repo's privacy policy                                    | no           |
-| _links      | no        | [HAL links][hal], with [defined relationships](#links-repo)                    | no           |
 
 
 
+# Summary: FAIR Package-Meta Mapping from Legacy Source
 
-## Summary: FAIR Package-Meta Mapping from Legacy Source
+## (Package) Metadata Document
 
 | FAIR Meta   | Explicit?     | Source                              | FAIR Format        |
 | ----------- | ------------- | ----------------------------------- | ------------------ |
 | id          | Yes, Assigned | internally-generated                | DID:PLC or DID:Web |
-| type        | Yes           | `wp-plugin` `wp-theme` or `wp-core` |  |
+| type        | Yes           | `wp-plugin` `wp-theme` or `wp-core` |  string            |
 | license     | Infer/convert | readme.txt & plugin headers         | [SPDX License Expression](https://spdx.github.io/spdx-spec/v3.0.1/annexes/spdx-license-expressions/); the protocol doesn't call for a url or license file, but should be included; make this json instead? WP meta has License URI & should contain a file copy |
 | authors     | Yes           | `contributors` in readme.txt & `authors` in plugin headers; extend via profiles.wordpress.org/[username] |
 | security    | Yes           | Use author/contributor if individual, else WordPress.org url | json doc with author name, url, email if available; social media links; if Bluesky link available, add user's DID:PLC |
 | releases    | Yes           | Change Log from readme.txt, SVN     | Release Document   |
 | slug        | Yes           | .org Source                         |                    |
-| name        | Yes           | readme.txt & plugin headers         |                    |
-| description | Yes           | short description from readme.txt   |                    |
-| keywords    | Yes           | tags frome `readme.txt`             |                    |
-| sections    | Yes           | (various)                           | Sections Document  |
+| name        | Yes           | `readme.txt` & plugin headers       |                    |
+| [description](https://github.com/fairpm/fair-protocol/blob/main/specification.md#description) | Yes | short description from `readme.txt` | string |
+| [keywords](https://github.com/fairpm/fair-protocol/blob/main/specification.md#keywords) | Yes | tags frome `readme.txt` | comma-separated list |
+| [sections](https://github.com/fairpm/fair-protocol/blob/main/specification.md#sections) | Yes | (various) | [Sections Document](#sections-document) |
 | _links      | no; infer?    |                                     |                    |
 
 
 ## DID Document
 
+Refer to [DID Document](https://github.com/fairpm/fair-protocol/blob/main/specification.md#did-document) in the FAIR Protocol. The DID document should contain:
+- `id` : DID:PLC or DID:Web
+- `alsoKnownAs` : Domain Alias, if any
+- `service` : id, endpoint, type
+- `verificationMethod` : includes `publicKeyMultibase` key value
+
+
 ## Sections Document
 
-| Key            | Source                              | Value, FAIR Format |
+| Key            | Data Source                         | Value, FAIR Format |
 | -------------- | ----------------------------------- | ------------------ |
 | changelog      | `readme.txt`                        | predefined         |
 | description    | long descriptioon from `readme.txt` | predefined         |
 | security       | security.md if available            | predefined         |
-| donate_link    | `readme.txt`                        | extended           |
-| tested_to      | `readme.txt`                        | extended           |
-| min_php_ver    | `readme.txt`                        | extended           |
 | faq            | `readme.txt`                        | extended           |
 | screenshots    | `readme.txt`                        | extended           |
-| upgrade_notice | `readme.txt`                        | extended           |
 | plugin_uri     | plugin headers                      | extended           |
-| multisite      | plugin headers                      | extended           |
-| update_url     | plugin headers                      | extended           |
+| revenue_model  | business model & donation link      | extended, json doc |
 
 
 ## Release Document
 
-| Key            | Source                              | Value, FAIR Format |
-| -------------- | ----------------------------------- | ------------------ |
-| version        | |
-| artifacts      | |
-| provides       | |
-| suggests       | |
-| auth           | |
-| _links         | |
+| Key            | Req'd | Constraints | Source                              | Value, FAIR Format                  |
+| -------------- | ----- | ----------- | ----------------------------------- | ----------------------------------- |
+| version        | yes   | string      | Current version from plugin headers | string                              |
+| [artifacts](https://github.com/fairpm/fair-protocol/blob/main/specification.md#artifacts) | yes  | json map | scan release files? | [json object](#artifacts-json-object) |
+| [provides](https://github.com/fairpm/fair-protocol/blob/main/specification.md#property-provides) | no* | json map | [package type](https://github.com/fairpm/fair-protocol/blob/main/specification.md#property-type) (wp-theme, wp-plugin)  | |
+| [requires](https://github.com/fairpm/fair-protocol/blob/main/specification.md#property-requires) | no* | json object | `Requires Plugins` in plugin headers |
+| suggests       | no*   | json map     |  may be available for themes        | same format as [requires](https://github.com/fairpm/fair-protocol/blob/main/specification.md#property-requires) |
+| auth           | no*   | json map     |  n/a for legacy packages             | bool `false` |
+| _links         | no*   |  [HAL links](https://datatracker.ietf.org/doc/html/draft-kelly-json-hal-11), with [defined relationships](https://github.com/fairpm/fair-protocol/blob/main/specification.md#links-metadata); links to Repository & Metadata Documents  |none; infer? | URLs for Repository & Meta Document |
+| tested_to      | no*   | string       | `readme.txt`                        | string                              |
+| min_php_ver    | no*   | string       | `readme.txt`                        | string                              |
+| upgrade_notice | no*   | string       | `readme.txt`                        | string                              |
+| multisite      | no*   | string       | plugin headers                      | bool                                |
+| update_url     | yes   | string       | plugin headers                      | URL                                 |
+
+*Populate for legacy .org packages if data is available.
 
 
 ## Repository Document
 
-| Key            | Source                              | Value, FAIR Format |
-| -------------- | ----------------------------------- | ------------------ |
-| name           | |
-| maintainers    | |
-| security       | |
-| privacy        | |
-| _links         | |
+| Key            | Req'd | Constraints | Data Source                           | Value, FAIR Format                           |
+| -------------- | ----- | ----------- | ------------------------------------- | -------------------------------------------- |
+| name           | yes   | string      | Repository name, not package name     | `FAIR Package Mirror`                        |
+| [maintainers](https://github.com/fairpm/fair-protocol/blob/main/specification.md#maintainers) | yes | json list (name, url, email) | generated | use `fair.pm` |
+| security       | yes   | json list   | generated                             | `fair.pm`                                    |
+| privacy        | yes   | URL string  | generated                             | `https://fair.pm/governance/privacy-policy/` |
+| _links         | no*   | [HAL links](https://datatracker.ietf.org/doc/html/draft-kelly-json-hal-11) | generated | `fair.pm` |
+
+*Populate for legacy .org packages.
 
 
-Labels from Meta (?)
+## Revenue Model Document
+
+*This is an extension to the FAIR Protocol specification and replaces the existing (optional) WordPress meta fields for `business model` and `donation link`.
+
+**json format document** containing:
+- one of: none, donation, freemium, paid-extensions, saas-subscription, commercial; default is none.
+- Plugin Website URL
+- long description; recommend feature comparison, donation appeal, SaaS
+- payment info / gateway
+
+
+## Artifacts JSON Object
+
+All values are optional, but at least one must exist. Refer to [FAIR artifacts specification](https://github.com/fairpm/fair-protocol/blob/main/specification.md#artifacts).
+
+| Key           | Source     | Value, FAIR Format |
+| ------------- | ---------- | ------------------ |
+| id            | n/a        |                    |
+| content-type  | file scan? | MIME type          |
+| requires-auth | n/a, false | bool               |
+| url           | infer      | url for the asset  |
+| signature     | generate   |                    |
+| checksum      | generate   | sha256 or sha384   |
+
+
+**Package Meta** --> labels or taxonomy terms to be used for faceted search & sorting of paginated results
+
 - multisite support
 - date last updated
 - date of first release
-- 
+- package type
+- author/maintainer
+- license
+- revenue model
+- PHP max version (negative selector)
+
+
+## Build Meta
+
+This JSON metadata document is _separate_ from the publisher-provided (signed) package meta, and contains the meta collected by FAIR for use in evaluating the package to assign trust scores, approve for federation, apply labels, and catalogue the entry. 
+
+| Key     | Req'd | Data Source            | Value, FAIR Format          |
+| ------- | ----- | ---------------------- | --------------------------- |
+| id      | yes   | package DID            | DID (cache DID document     |
+
+
+
 
 
