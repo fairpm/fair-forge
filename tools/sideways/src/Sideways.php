@@ -59,8 +59,8 @@ use AspireBuild\Util\Regex;
 use Closure;
 use DOMDocument;
 use DOMElement;
+use Generator;
 use InvalidArgumentException;
-use RuntimeException;
 
 class Sideways
 {
@@ -283,21 +283,21 @@ class Sideways
 
     //region Private API
 
-    protected function textElements(string $text): array
+    protected function textElements(string $text): Generator
     {
         $this->resetState();
         $text = str_replace(["\r\n", "\r"], "\n", $text);
         $text = trim($text, "\n");
         $lines = explode("\n", $text);
-        return $this->linesElements($lines);
+        yield from $this->linesElements($lines);
     }
 
-    protected function lines(array $lines): string
+    protected function lines(iterable $lines): string
     {
         return $this->elements($this->linesElements($lines));
     }
 
-    protected function linesElements(array $lines): array
+    protected function linesElements(iterable $lines): Generator
     {
         $Elements = [];
         $CurrentBlock = null;
@@ -320,11 +320,7 @@ class Sideways
                     . substr($line, strlen($beforeTab) + 1);
             }
 
-            $indent = strspn($line, ' ');
-
-            $text = $indent > 0 ? substr($line, $indent) : $line;
-
-            $Line = new Line(text: $text, indent: $indent, body: $line);
+            $Line = new Line($line);
 
             if (isset($CurrentBlock['continuable'])) {
                 $method = $this->_dispatch('continue', $CurrentBlock['type']);
@@ -339,40 +335,36 @@ class Sideways
                 $method and $CurrentBlock = $method($CurrentBlock);
             }
 
-            $marker = $text[0];
-
-            $blockTypes = $this->unmarkedBlockTypes;
-
-            if (isset($this->BlockTypes[$marker])) {
-                foreach ($this->BlockTypes[$marker] as $blockType) {
-                    $blockTypes [] = $blockType;
-                }
-            }
+            $blockTypes = [
+                ...$this->unmarkedBlockTypes,
+                ...($this->BlockTypes[$Line->marker] ?? []),
+            ];
 
             foreach ($blockTypes as $blockType) {
                 $Block = $this->_dispatch('block', $blockType)($Line, $CurrentBlock);
 
-                if (isset($Block)) {
-                    $Block['type'] = $blockType;
-
-                    if (!isset($Block['identified'])) {
-                        if (isset($CurrentBlock)) {
-                            $Elements[] = $this->extractElement($CurrentBlock);
-                        }
-
-                        $Block['identified'] = true;
-                    }
-
-                    if ($this->_dispatch('continue', $blockType)) {
-                        $Block['continuable'] = true;
-                    }
-
-                    $CurrentBlock = $Block;
-
-                    continue 2;
+                if (!$Block) {
+                    continue;
                 }
-            }
 
+                $Block['type'] = $blockType;
+
+                if (!isset($Block['identified'])) {
+                    if (isset($CurrentBlock)) {
+                        $Elements[] = $this->extractElement($CurrentBlock);
+                    }
+
+                    $Block['identified'] = true;
+                }
+
+                if ($this->_dispatch('continue', $blockType)) {
+                    $Block['continuable'] = true;
+                }
+
+                $CurrentBlock = $Block;
+
+                continue 2;
+            }
 
             if (isset($CurrentBlock) and $CurrentBlock['type'] === Paragraph::class) {
                 $Block = $this->paragraphContinue($Line, $CurrentBlock);
@@ -400,7 +392,7 @@ class Sideways
             $Elements[] = $this->extractElement($CurrentBlock);
         }
 
-        return $Elements;
+        yield from $Elements;
     }
 
     protected function extractElement(array $Component)
@@ -431,20 +423,21 @@ class Sideways
             return null;
         }
 
-        if ($Line->indent >= 4) {
-            $text = substr($Line->body, 4);
-
-            return [
-                'element' => [
-                    'name'    => 'pre',
-                    'element' => [
-                        'name' => 'code',
-                        'text' => $text,
-                    ],
-                ],
-            ];
+        if ($Line->indent < 4) {
+            return null;
         }
-        return null;
+
+        $text = substr($Line->body, 4);
+
+        return [
+            'element' => [
+                'name'    => 'pre',
+                'element' => [
+                    'name' => 'code',
+                    'text' => $text,
+                ],
+            ],
+        ];
     }
 
     protected function blockCodeContinue(Line $Line, array $Block): ?array
@@ -1214,7 +1207,7 @@ class Sideways
         return $this->elements($this->lineElements($text, $nonNestables));
     }
 
-    protected function lineElements(string $text, array $nonNestables = []): array
+    protected function lineElements(string $text, array $nonNestables = []): Generator
     {
         // standardize line breaks
         $text = str_replace(["\r\n", "\r"], "\n", $text);
@@ -1302,7 +1295,9 @@ class Sideways
             }
         }
 
-        return $Elements;
+        unset($Element);
+
+        yield from $Elements;
     }
 
     protected function inlineText(string $text): array
@@ -1806,7 +1801,7 @@ class Sideways
         return $markup;
     }
 
-    protected function elements(array $Elements): string
+    protected function elements(iterable $Elements): string
     {
         $markup = '';
 
@@ -1832,7 +1827,7 @@ class Sideways
 
     protected function li(array $lines): array
     {
-        $Elements = $this->linesElements($lines);
+        $Elements = iterator_to_array($this->linesElements($lines));
 
         if (!in_array('', $lines, true)
             and isset($Elements[0]) and isset($Elements[0]['name'])
@@ -2149,7 +2144,7 @@ class Sideways
 
             $text = $definition['text'];
 
-            $textElements = $this->textElements($text);
+            $textElements = iterator_to_array($this->textElements($text));
 
             $numbers = range(1, $definition['count']);
 
@@ -2303,12 +2298,10 @@ class Sideways
                 Markup::class => $this->blockMarkup(...),
                 Reference::class => $this->blockReference(...),
                 Table::class => $this->blockTable(...),
-                // Extra
                 Abbreviation::class => $this->blockAbbreviation(...),
                 DefinitionList::class => $this->blockDefinitionList(...),
                 Footnote::class => $this->blockFootnote(...),
-                // default => null,
-                default => throw new RuntimeException("Unknown block '$type'"),
+                default => null,
             },
             'continue' => match ($type) {
                 Code::class => $this->blockCodeContinue(...),
