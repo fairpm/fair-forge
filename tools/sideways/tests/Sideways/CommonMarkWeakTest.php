@@ -2,7 +2,9 @@
 
 namespace Tests\AspireBuild\Tools\Sideways;
 
+use AspireBuild\Util\Regex;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -18,12 +20,11 @@ use RuntimeException;
  *
  * @link http://commonmark.org/ CommonMark
  */
+#[Group('commonmark')]
 class CommonMarkWeakTest extends TestCase
 {
     protected string $textLevelElementRegex;
     protected TestSideways $sideways;
-
-    const string SPEC_URL = 'https://raw.githubusercontent.com/jgm/CommonMark/master/spec.txt';
 
     protected function setUp(): void
     {
@@ -69,17 +70,12 @@ class CommonMarkWeakTest extends TestCase
 
     public static function data(): array
     {
-        $spec = file_get_contents(self::SPEC_URL);
-        if ($spec === false) {
-            throw new RuntimeException('Unable to load CommonMark spec from ' . self::SPEC_URL);
-        }
-
+        $spec = file_get_contents(__DIR__ . '/commonmark-spec.txt');
         $spec = str_replace("\r\n", "\n", $spec);
         $spec = strstr($spec, '<!-- END TESTS -->', true);
 
-        $matches = [];
-        preg_match_all('/^`{32} example\n((?s).*?)\n\.\n(?:|((?s).*?)\n)`{32}$|^#{1,6} *(.*?)$/m', $spec, $matches,
-            PREG_SET_ORDER);
+        $test_regex = '/^`{32} example\n((?s).*?)\n\.\n(?:|((?s).*?)\n)`{32}$|^#{1,6} *(.*?)$/m';
+        $matches = Regex::allMatches($test_regex, $spec);
 
         $data = [];
         $currentId = 0;

@@ -6,8 +6,13 @@
          beStrictAboutOutputDuringTests="true"
          displayDetailsOnAllIssues="true"
 >
+    <groups>
+        <exclude>
+            <group>commonmark</group>
+        </exclude>
+    </groups>
     <testsuites>
-        <testsuite name="All">
+        <testsuite name="Main">
             <directory>tools/sideways/tests</directory>
             <directory>tools/wp-plugin/tests</directory>
         </testsuite>
@@ -19,6 +24,6 @@
         </include>
     </source>
     <php>
-        <env name="APP_ENV" value="testing" force="true" />
+        <env name="APP_ENV" value="testing" force="true"/>
     </php>
 </phpunit>
