@@ -241,6 +241,12 @@ class Sideways
         'time',
     ];
 
+    // Solely for tests -- we'll want to refactor this later.
+    public function getTextLevelElements(): array
+    {
+        return $this->textLevelElements;
+    }
+
     //region Mutable State
 
     protected array $_abbreviations = [];

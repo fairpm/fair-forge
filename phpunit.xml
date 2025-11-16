@@ -8,7 +8,7 @@
 >
     <groups>
         <exclude>
-            <group>commonmark</group>
+            <group>default-disabled</group>
         </exclude>
     </groups>
     <testsuites>
