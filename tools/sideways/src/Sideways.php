@@ -278,9 +278,8 @@ class Sideways
         foreach ($lines as $line) {
             if (rtrim($line) === '') {
                 if (isset($CurrentBlock)) {
-                    $CurrentBlock['interrupted'] = (isset($CurrentBlock['interrupted'])
-                        ? $CurrentBlock['interrupted'] + 1 : 1
-                    );
+                    $interrupted = $CurrentBlock['interrupted'] ?? 0;
+                    $CurrentBlock['interrupted'] = $interrupted + 1;
                 }
 
                 continue;
@@ -303,24 +302,19 @@ class Sideways
 
 
             if (isset($CurrentBlock['continuable'])) {
-                $methodName = 'block' . $CurrentBlock['type'] . 'Continue';
-                $Block = $this->$methodName($Line, $CurrentBlock);
+                $method = $this->_dispatch('continue', $CurrentBlock['type']);
+                $method and $Block = $method($Line, $CurrentBlock);
 
                 if (isset($Block)) {
                     $CurrentBlock = $Block;
-
                     continue;
                 }
 
-                if ($this->isBlockCompletable($CurrentBlock['type'])) {
-                    $methodName = 'block' . $CurrentBlock['type'] . 'Complete';
-                    $CurrentBlock = $this->$methodName($CurrentBlock);
-                }
+                $method = $this->_dispatch('complete', $CurrentBlock['type']);
+                $method and $CurrentBlock = $method($CurrentBlock);
             }
 
-
             $marker = $text[0];
-
 
             $blockTypes = $this->unmarkedBlockTypes;
 
@@ -344,7 +338,7 @@ class Sideways
                         $Block['identified'] = true;
                     }
 
-                    if ($this->isBlockContinuable($blockType)) {
+                    if ($this->_dispatch('continue', $blockType)) {
                         $Block['continuable'] = true;
                     }
 
@@ -372,17 +366,14 @@ class Sideways
             }
         }
 
-
-        if (isset($CurrentBlock['continuable']) and $this->isBlockCompletable($CurrentBlock['type'])) {
-            $methodName = 'block' . $CurrentBlock['type'] . 'Complete';
-            $CurrentBlock = $this->$methodName($CurrentBlock);
+        if (isset($CurrentBlock['continuable'])) {
+            $method = $this->_dispatch('complete', $CurrentBlock['type']);
+            $method and $CurrentBlock = $method($CurrentBlock);
         }
-
 
         if (isset($CurrentBlock)) {
             $Elements[] = $this->extractElement($CurrentBlock);
         }
-
 
         return $Elements;
     }
@@ -398,17 +389,6 @@ class Sideways
         }
 
         return $Component['element'];
-    }
-
-    protected function isBlockContinuable(string $Type): bool
-    {
-        // return method_exists($this, 'block' . $Type . 'Continue');
-        return $this->_dispatch('continue', $Type) !== null;
-    }
-
-    protected function isBlockCompletable(string $Type): bool
-    {
-        return method_exists($this, 'block' . $Type . 'Complete');
     }
 
     protected function blockCode(array $Line, ?array $Block = null): ?array
@@ -1661,7 +1641,6 @@ class Sideways
                 $destination = $Element['handler']['destination'];
             }
 
-            // $Element[$destination] = $this->{$function}($argument, $Element['nonNestables']);
             $Element[$destination] = $function($argument, $Element['nonNestables']);
 
             if ($destination === 'handler') {
@@ -2296,7 +2275,6 @@ class Sideways
                 'Abbreviation' => $this->blockAbbreviation(...),
                 'DefinitionList' => $this->blockDefinitionList(...),
                 'Footnote' => $this->blockFootnote(...),
-
                 default => null,
             },
             'continue' => match ($type) {
@@ -2319,6 +2297,7 @@ class Sideways
                 // Extra
                 'Markup' => $this->blockMarkupComplete(...),
                 'Footnote' => $this->blockFootnoteComplete(...),
+                default => null,
             },
             'inline' => match ($type) {
                 'Text' => $this->inlineText(...),
