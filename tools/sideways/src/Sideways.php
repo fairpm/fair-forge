@@ -1226,7 +1226,7 @@ class Sideways
 
             $markerPosition = strlen($text) - strlen($excerpt);
 
-            $Excerpt = ['text' => $excerpt, 'context' => $text];
+            $Excerpt = new Excerpt($excerpt, $text);
 
             foreach ($this->InlineTypes[$marker] as $inlineType) {
                 // check to see if the current inline type is nestable in the current context
@@ -1329,12 +1329,12 @@ class Sideways
         return $Inline;
     }
 
-    protected function inlineCode(array $Excerpt): ?array
+    protected function inlineCode(Excerpt $Excerpt): ?array
     {
-        $marker = $Excerpt['text'][0];
+        $marker = $Excerpt->text[0];
 
         if (preg_match('/^([' . $marker . ']++)[ ]*+(.+?)[ ]*+(?<![' . $marker . '])\1(?!' . $marker . ')/s',
-            $Excerpt['text'], $matches)) {
+            $Excerpt->text, $matches)) {
             $text = $matches[2];
             $text = Regex::replace('/[ ]*+\n/', ' ', $text);
 
@@ -1349,15 +1349,15 @@ class Sideways
         return null;
     }
 
-    protected function inlineEmailTag(array $Excerpt): ?array
+    protected function inlineEmailTag(Excerpt $Excerpt): ?array
     {
         $hostnameLabel = '[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?';
 
         $commonMarkEmail = '[a-zA-Z0-9.!#$%&\'*+\/=?^_`{|}~-]++@'
             . $hostnameLabel . '(?:\.' . $hostnameLabel . ')*';
 
-        if (str_contains($Excerpt['text'], '>')
-            and preg_match("/^<((mailto:)?$commonMarkEmail)>/i", $Excerpt['text'], $matches)
+        if (str_contains($Excerpt->text, '>')
+            and preg_match("/^<((mailto:)?$commonMarkEmail)>/i", $Excerpt->text, $matches)
         ) {
             $url = $matches[1];
 
@@ -1379,17 +1379,17 @@ class Sideways
         return null;
     }
 
-    protected function inlineEmphasis(array $Excerpt): ?array
+    protected function inlineEmphasis(Excerpt $Excerpt): ?array
     {
-        if (!isset($Excerpt['text'][1])) {
+        if (!isset($Excerpt->text[1])) {
             return null;
         }
 
-        $marker = $Excerpt['text'][0];
+        $marker = $Excerpt->text[0];
 
-        if ($Excerpt['text'][1] === $marker and preg_match($this->StrongRegex[$marker], $Excerpt['text'], $matches)) {
+        if ($Excerpt->text[1] === $marker and preg_match($this->StrongRegex[$marker], $Excerpt->text, $matches)) {
             $emphasis = 'strong';
-        } elseif (preg_match($this->EmRegex[$marker], $Excerpt['text'], $matches)) {
+        } elseif (preg_match($this->EmRegex[$marker], $Excerpt->text, $matches)) {
             $emphasis = 'em';
         } else {
             return null;
@@ -1408,24 +1408,24 @@ class Sideways
         ];
     }
 
-    protected function inlineEscapeSequence(array $Excerpt): ?array
+    protected function inlineEscapeSequence(Excerpt $Excerpt): ?array
     {
-        if (isset($Excerpt['text'][1]) and in_array($Excerpt['text'][1], $this->specialCharacters, true)) {
+        if (isset($Excerpt->text[1]) and in_array($Excerpt->text[1], $this->specialCharacters, true)) {
             return [
-                'element' => ['rawHtml' => $Excerpt['text'][1]],
+                'element' => ['rawHtml' => $Excerpt->text[1]],
                 'extent'  => 2,
             ];
         }
         return null;
     }
 
-    protected function inlineImage(array $Excerpt): ?array
+    protected function inlineImage(Excerpt $Excerpt): ?array
     {
-        if (!isset($Excerpt['text'][1]) or $Excerpt['text'][1] !== '[') {
+        if (!isset($Excerpt->text[1]) or $Excerpt->text[1] !== '[') {
             return null;
         }
 
-        $Excerpt['text'] = substr($Excerpt['text'], 1);
+        $Excerpt->text = substr($Excerpt->text, 1);
 
         $Link = $this->inlineLink($Excerpt);
 
@@ -1452,7 +1452,7 @@ class Sideways
         return $Inline;
     }
 
-    protected function inlineLink(array $Excerpt): ?array
+    protected function inlineLink(Excerpt $Excerpt): ?array
     {
         $Element = [
             'name'         => 'a',
@@ -1470,7 +1470,7 @@ class Sideways
 
         $extent = 0;
 
-        $remainder = $Excerpt['text'];
+        $remainder = $Excerpt->text;
 
         if (preg_match('/\[((?:[^][]++|(?R))*+)\]/', $remainder, $matches)) {
             $Element['handler']['argument'] = $matches[1];
@@ -1517,7 +1517,7 @@ class Sideways
         ];
 
         if ($this->extra) {
-            $remainder = substr($Excerpt['text'], $Link['extent']);
+            $remainder = substr($Excerpt->text, $Link['extent']);
 
             if (preg_match('/^[ ]*{(' . $this->regexAttribute . '+)}/', $remainder, $matches)) {
                 $Link['element']['attributes'] += $this->parseAttributeData($matches[1]);
@@ -1529,29 +1529,29 @@ class Sideways
         return $Link;
     }
 
-    protected function inlineMarkup(array $Excerpt): ?array
+    protected function inlineMarkup(Excerpt $Excerpt): ?array
     {
-        if ($this->markupEscaped or $this->safeMode or !str_contains($Excerpt['text'], '>')) {
+        if ($this->markupEscaped or $this->safeMode or !str_contains($Excerpt->text, '>')) {
             return null;
         }
 
-        if ($Excerpt['text'][1] === '/' and preg_match('/^<\/\w[\w-]*+[ ]*+>/', $Excerpt['text'], $matches)) {
+        if ($Excerpt->text[1] === '/' and preg_match('/^<\/\w[\w-]*+[ ]*+>/', $Excerpt->text, $matches)) {
             return [
                 'element' => ['rawHtml' => $matches[0]],
                 'extent'  => strlen($matches[0]),
             ];
         }
 
-        if ($Excerpt['text'][1] === '!' and preg_match('/^<!---?[^>-](?:-?+[^-])*-->/', $Excerpt['text'], $matches)) {
+        if ($Excerpt->text[1] === '!' and preg_match('/^<!---?[^>-](?:-?+[^-])*-->/', $Excerpt->text, $matches)) {
             return [
                 'element' => ['rawHtml' => $matches[0]],
                 'extent'  => strlen($matches[0]),
             ];
         }
 
-        if ($Excerpt['text'][1] !== ' ' and preg_match('/^<\w[\w-]*+(?:[ ]*+'
+        if ($Excerpt->text[1] !== ' ' and preg_match('/^<\w[\w-]*+(?:[ ]*+'
                 . $this->regexHtmlAttribute
-                . ')*+[ ]*+\/?>/s', $Excerpt['text'], $matches)) {
+                . ')*+[ ]*+\/?>/s', $Excerpt->text, $matches)) {
             return [
                 'element' => ['rawHtml' => $matches[0]],
                 'extent'  => strlen($matches[0]),
@@ -1560,10 +1560,10 @@ class Sideways
         return null;
     }
 
-    protected function inlineSpecialCharacter(array $Excerpt): ?array
+    protected function inlineSpecialCharacter(Excerpt $Excerpt): ?array
     {
-        if (substr($Excerpt['text'], 1, 1) !== ' ' and str_contains($Excerpt['text'], ';')
-            and preg_match('/^&(#?+[0-9a-zA-Z]++);/', $Excerpt['text'], $matches)
+        if (substr($Excerpt->text, 1, 1) !== ' ' and str_contains($Excerpt->text, ';')
+            and preg_match('/^&(#?+[0-9a-zA-Z]++);/', $Excerpt->text, $matches)
         ) {
             return [
                 'element' => ['rawHtml' => '&' . $matches[1] . ';'],
@@ -1574,13 +1574,13 @@ class Sideways
         return null;
     }
 
-    protected function inlineStrikethrough(array $Excerpt): ?array
+    protected function inlineStrikethrough(Excerpt $Excerpt): ?array
     {
-        if (!isset($Excerpt['text'][1])) {
+        if (!isset($Excerpt->text[1])) {
             return null;
         }
 
-        if ($Excerpt['text'][1] === '~' and preg_match('/^~~(?=\S)(.+?)(?<=\S)~~/', $Excerpt['text'], $matches)) {
+        if ($Excerpt->text[1] === '~' and preg_match('/^~~(?=\S)(.+?)(?<=\S)~~/', $Excerpt->text, $matches)) {
             return [
                 'extent'  => strlen($matches[0]),
                 'element' => [
@@ -1596,14 +1596,14 @@ class Sideways
         return null;
     }
 
-    protected function inlineUrl(array $Excerpt): ?array
+    protected function inlineUrl(Excerpt $Excerpt): ?array
     {
-        if ($this->urlsLinked !== true or !isset($Excerpt['text'][2]) or $Excerpt['text'][2] !== '/') {
+        if ($this->urlsLinked !== true or !isset($Excerpt->text[2]) or $Excerpt->text[2] !== '/') {
             return null;
         }
 
-        if (str_contains($Excerpt['context'], 'http')
-            and preg_match('/\bhttps?+:[\/]{2}[^\s<]+\b\/*+/ui', $Excerpt['context'], $matches, PREG_OFFSET_CAPTURE)
+        if (str_contains($Excerpt->context, 'http')
+            and preg_match('/\bhttps?+:[\/]{2}[^\s<]+\b\/*+/ui', $Excerpt->context, $matches, PREG_OFFSET_CAPTURE)
         ) {
             $url = $matches[0][0];
 
@@ -1622,9 +1622,9 @@ class Sideways
         return null;
     }
 
-    protected function inlineUrlTag(array $Excerpt): ?array
+    protected function inlineUrlTag(Excerpt $Excerpt): ?array
     {
-        if (str_contains($Excerpt['text'], '>') and preg_match('/^<(\w++:\/{2}[^ >]++)>/i', $Excerpt['text'],
+        if (str_contains($Excerpt->text, '>') and preg_match('/^<(\w++:\/{2}[^ >]++)>/i', $Excerpt->text,
                 $matches)) {
             $url = $matches[1];
 
@@ -2036,9 +2036,9 @@ class Sideways
         return $Block;
     }
 
-    protected function inlineFootnoteMarker(array $Excerpt): ?array
+    protected function inlineFootnoteMarker(Excerpt $Excerpt): ?array
     {
-        if (preg_match('/^\[\^(.+?)\]/', $Excerpt['text'], $matches)) {
+        if (preg_match('/^\[\^(.+?)\]/', $Excerpt->text, $matches)) {
             $name = $matches[1];
 
             if (!isset($this->_footnotes[$name])) {
