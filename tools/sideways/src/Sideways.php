@@ -299,9 +299,7 @@ class Sideways
 
             $text = $indent > 0 ? substr($line, $indent) : $line;
 
-
-            $Line = ['body' => $line, 'indent' => $indent, 'text' => $text];
-
+            $Line = new Line(text: $text, indent: $indent, body: $line);
 
             if (isset($CurrentBlock['continuable'])) {
                 $method = $this->_dispatch('continue', $CurrentBlock['type']);
@@ -402,14 +400,14 @@ class Sideways
 
     //region Block Methods
 
-    protected function blockCode(array $Line, ?array $Block = null): ?array
+    protected function blockCode(Line $Line, ?array $Block = null): ?array
     {
         if (isset($Block) and $Block['type'] === 'Paragraph' and !isset($Block['interrupted'])) {
             return null;
         }
 
-        if ($Line['indent'] >= 4) {
-            $text = substr($Line['body'], 4);
+        if ($Line->indent >= 4) {
+            $text = substr($Line->body, 4);
 
             return [
                 'element' => [
@@ -424,24 +422,25 @@ class Sideways
         return null;
     }
 
-    protected function blockCodeContinue(array $Line, array $Block): ?array
+    protected function blockCodeContinue(Line $Line, array $Block): ?array
     {
-        if ($Line['indent'] >= 4) {
-            if (isset($Block['interrupted'])) {
-                $Block['element']['element']['text'] .= str_repeat("\n", $Block['interrupted']);
-
-                unset($Block['interrupted']);
-            }
-
-            $Block['element']['element']['text'] .= "\n";
-
-            $text = substr($Line['body'], 4);
-
-            $Block['element']['element']['text'] .= $text;
-
-            return $Block;
+        if ($Line->indent < 4) {
+            return null;
         }
-        return null;
+
+        if (isset($Block['interrupted'])) {
+            $Block['element']['element']['text'] .= str_repeat("\n", $Block['interrupted']);
+
+            unset($Block['interrupted']);
+        }
+
+        $Block['element']['element']['text'] .= "\n";
+
+        $text = substr($Line->body, 4);
+
+        $Block['element']['element']['text'] .= $text;
+
+        return $Block;
     }
 
     protected function blockCodeComplete(array $Block): array
@@ -449,21 +448,21 @@ class Sideways
         return $Block;
     }
 
-    protected function blockComment(array $Line): ?array
+    protected function blockComment(Line $Line): ?array
     {
         if ($this->markupEscaped or $this->safeMode) {
             return null;
         }
 
-        if (str_starts_with($Line['text'], '<!--')) {
+        if (str_starts_with($Line->text, '<!--')) {
             $Block = [
                 'element' => [
-                    'rawHtml'   => $Line['body'],
+                    'rawHtml'   => $Line->body,
                     'autobreak' => true,
                 ],
             ];
 
-            if (str_contains($Line['text'], '-->')) {
+            if (str_contains($Line->text, '-->')) {
                 $Block['closed'] = true;
             }
 
@@ -472,32 +471,32 @@ class Sideways
         return null;
     }
 
-    protected function blockCommentContinue(array $Line, array $Block): ?array
+    protected function blockCommentContinue(Line $Line, array $Block): ?array
     {
         if (isset($Block['closed'])) {
             return null;
         }
 
-        $Block['element']['rawHtml'] .= "\n" . $Line['body'];
+        $Block['element']['rawHtml'] .= "\n" . $Line->body;
 
-        if (str_contains($Line['text'], '-->')) {
+        if (str_contains($Line->text, '-->')) {
             $Block['closed'] = true;
         }
 
         return $Block;
     }
 
-    protected function blockFencedCode(array $Line): ?array
+    protected function blockFencedCode(Line $Line): ?array
     {
-        $marker = $Line['text'][0];
+        $marker = $Line->text[0];
 
-        $openerLength = strspn($Line['text'], $marker);
+        $openerLength = strspn($Line->text, $marker);
 
         if ($openerLength < 3) {
             return null;
         }
 
-        $infostring = trim(substr($Line['text'], $openerLength), "\t ");
+        $infostring = trim(substr($Line->text, $openerLength), "\t ");
 
         if (str_contains($infostring, '`')) {
             return null;
@@ -536,7 +535,7 @@ class Sideways
         ];
     }
 
-    protected function blockFencedCodeContinue(array $Line, array $Block): ?array
+    protected function blockFencedCodeContinue(Line $Line, array $Block): ?array
     {
         if (isset($Block['complete'])) {
             return null;
@@ -548,8 +547,8 @@ class Sideways
             unset($Block['interrupted']);
         }
 
-        if (($len = strspn($Line['text'], $Block['char'])) >= $Block['openerLength']
-            and rtrim(substr($Line['text'], $len), ' ') === ''
+        if (($len = strspn($Line->text, $Block['char'])) >= $Block['openerLength']
+            and rtrim(substr($Line->text, $len), ' ') === ''
         ) {
             $Block['element']['element']['text'] = substr($Block['element']['element']['text'], 1);
 
@@ -558,7 +557,7 @@ class Sideways
             return $Block;
         }
 
-        $Block['element']['element']['text'] .= "\n" . $Line['body'];
+        $Block['element']['element']['text'] .= "\n" . $Line->body;
 
         return $Block;
     }
@@ -568,15 +567,15 @@ class Sideways
         return $Block;
     }
 
-    protected function blockHeader(array $Line): ?array
+    protected function blockHeader(Line $Line): ?array
     {
-        $level = strspn($Line['text'], '#');
+        $level = strspn($Line->text, '#');
 
         if ($level > 6) {
             return null;
         }
 
-        $text = trim($Line['text'], '#');
+        $text = trim($Line->text, '#');
 
         if ($this->strictMode and isset($text[0]) and $text[0] !== ' ') {
             return null;
@@ -614,9 +613,9 @@ class Sideways
 
     protected function blockList($Line, ?array $CurrentBlock = null): ?array
     {
-        [$name, $pattern] = $Line['text'][0] <= '-' ? ['ul', '[*+-]'] : ['ol', '[0-9]{1,9}+[.\)]'];
+        [$name, $pattern] = $Line->text[0] <= '-' ? ['ul', '[*+-]'] : ['ol', '[0-9]{1,9}+[.\)]'];
 
-        if (preg_match('/^(' . $pattern . '([ ]++|$))(.*+)/', $Line['text'], $matches)) {
+        if (preg_match('/^(' . $pattern . '([ ]++|$))(.*+)/', $Line->text, $matches)) {
             $contentIndent = strlen($matches[2]);
 
             if ($contentIndent >= 5) {
@@ -630,7 +629,7 @@ class Sideways
             $markerWithoutWhitespace = strstr($matches[1], ' ', true);
 
             $Block = [
-                'indent'  => $Line['indent'],
+                'indent'  => $Line->indent,
                 'pattern' => $pattern,
                 'data'    => [
                     'type'       => $name,
@@ -676,7 +675,7 @@ class Sideways
         return null;
     }
 
-    protected function blockListContinue(array $Line, array $Block): ?array
+    protected function blockListContinue(Line $Line, array $Block): ?array
     {
         if (isset($Block['interrupted']) and empty($Block['li']['handler']['argument'])) {
             return null;
@@ -684,15 +683,15 @@ class Sideways
 
         $requiredIndent = ($Block['indent'] + strlen($Block['data']['marker']));
 
-        if ($Line['indent'] < $requiredIndent
+        if ($Line->indent < $requiredIndent
             and (
                 (
                     $Block['data']['type'] === 'ol'
-                    and preg_match('/^[0-9]++' . $Block['data']['markerTypeRegex'] . '(?:[ ]++(.*)|$)/', $Line['text'],
+                    and preg_match('/^[0-9]++' . $Block['data']['markerTypeRegex'] . '(?:[ ]++(.*)|$)/', $Line->text,
                         $matches)
                 ) or (
                     $Block['data']['type'] === 'ul'
-                    and preg_match('/^' . $Block['data']['markerTypeRegex'] . '(?:[ ]++(.*)|$)/', $Line['text'],
+                    and preg_match('/^' . $Block['data']['markerTypeRegex'] . '(?:[ ]++(.*)|$)/', $Line->text,
                         $matches)
                 )
             )) {
@@ -708,7 +707,7 @@ class Sideways
 
             $text = $matches[1] ?? '';
 
-            $Block['indent'] = $Line['indent'];
+            $Block['indent'] = $Line->indent;
 
             $Block['li'] = [
                 'name'    => 'li',
@@ -724,16 +723,16 @@ class Sideways
             return $Block;
         }
 
-        if ($Line['indent'] < $requiredIndent and $this->blockList($Line)
+        if ($Line->indent < $requiredIndent and $this->blockList($Line)
         ) {
             return null;
         }
 
-        if ($Line['text'][0] === '[' and $this->blockReference($Line)) {
+        if ($Line->text[0] === '[' and $this->blockReference($Line)) {
             return $Block;
         }
 
-        if ($Line['indent'] >= $requiredIndent) {
+        if ($Line->indent >= $requiredIndent) {
             if (isset($Block['interrupted'])) {
                 $Block['li']['handler']['argument'] [] = '';
 
@@ -742,7 +741,7 @@ class Sideways
                 unset($Block['interrupted']);
             }
 
-            $text = substr($Line['body'], $requiredIndent);
+            $text = substr($Line->body, $requiredIndent);
 
             $Block['li']['handler']['argument'] [] = $text;
 
@@ -750,7 +749,7 @@ class Sideways
         }
 
         if (!isset($Block['interrupted'])) {
-            $text = Regex::replace('/^[ ]{0,' . $requiredIndent . '}+/', '', $Line['body']);
+            $text = Regex::replace('/^[ ]{0,' . $requiredIndent . '}+/', '', $Line->body);
 
             $Block['li']['handler']['argument'] [] = $text;
 
@@ -772,9 +771,9 @@ class Sideways
         return $Block;
     }
 
-    protected function blockQuote(array $Line): ?array
+    protected function blockQuote(Line $Line): ?array
     {
-        if (preg_match('/^>[ ]?+(.*+)/', $Line['text'], $matches)) {
+        if (preg_match('/^>[ ]?+(.*+)/', $Line->text, $matches)) {
             return [
                 'element' => [
                     'name'    => 'blockquote',
@@ -789,27 +788,27 @@ class Sideways
         return null;
     }
 
-    protected function blockQuoteContinue(array $Line, array $Block): ?array
+    protected function blockQuoteContinue(Line $Line, array $Block): ?array
     {
         if (isset($Block['interrupted'])) {
             return null;
         }
 
-        if ($Line['text'][0] === '>' and preg_match('/^>[ ]?+(.*+)/', $Line['text'], $matches)) {
+        if ($Line->text[0] === '>' and preg_match('/^>[ ]?+(.*+)/', $Line->text, $matches)) {
             $Block['element']['handler']['argument'] [] = $matches[1];
 
             return $Block;
         }
 
-        $Block['element']['handler']['argument'] [] = $Line['text'];
+        $Block['element']['handler']['argument'] [] = $Line->text;
         return $Block;
     }
 
-    protected function blockRule(array $Line): ?array
+    protected function blockRule(Line $Line): ?array
     {
-        $marker = $Line['text'][0];
+        $marker = $Line->text[0];
 
-        if (substr_count($Line['text'], $marker) >= 3 and rtrim($Line['text'], " $marker") === '') {
+        if (substr_count($Line->text, $marker) >= 3 and rtrim($Line->text, " $marker") === '') {
             return [
                 'element' => [
                     'name' => 'hr',
@@ -819,14 +818,14 @@ class Sideways
         return null;
     }
 
-    protected function blockSetextHeader(array $Line, ?array $Block = null): ?array
+    protected function blockSetextHeader(Line $Line, ?array $Block = null): ?array
     {
         if (!isset($Block) or $Block['type'] !== 'Paragraph' or isset($Block['interrupted'])) {
             return null;
         }
 
-        if ($Line['indent'] < 4 and rtrim(rtrim($Line['text'], ' '), $Line['text'][0]) === '') {
-            $Block['element']['name'] = $Line['text'][0] === '=' ? 'h1' : 'h2';
+        if ($Line->indent < 4 and rtrim(rtrim($Line->text, ' '), $Line->text[0]) === '') {
+            $Block['element']['name'] = $Line->text[0] === '=' ? 'h1' : 'h2';
         } else {
             return null;
         }
@@ -845,7 +844,7 @@ class Sideways
         return $Block;
     }
 
-    protected function blockMarkup(array $Line): ?array
+    protected function blockMarkup(Line $Line): ?array
     {
         if ($this->extra) {
             return $this->_blockMarkup_Extra($Line);
@@ -855,18 +854,18 @@ class Sideways
             return null;
         }
 
-        if (preg_match('/^<[\/]?+(\w*)(?:[ ]*+' . $this->regexHtmlAttribute . ')*+[ ]*+(\/)?>/', $Line['text'],
+        if (preg_match('/^<[\/]?+(\w*)(?:[ ]*+' . $this->regexHtmlAttribute . ')*+[ ]*+(\/)?>/', $Line->text,
             $matches)) {
-            $element = strtolower($matches[1]);
+            $elem = strtolower($matches[1]);
 
-            if (in_array($element, $this->textLevelElements, true)) {
+            if (in_array($elem, $this->textLevelElements, true)) {
                 return null;
             }
 
             return [
                 'name'    => $matches[1],
                 'element' => [
-                    'rawHtml'   => $Line['text'],
+                    'rawHtml'   => $Line->text,
                     'autobreak' => true,
                 ],
             ];
@@ -874,16 +873,16 @@ class Sideways
         return null;
     }
 
-    protected function _blockMarkup_Extra(array $Line): ?array
+    protected function _blockMarkup_Extra(Line $Line): ?array
     {
         if ($this->markupEscaped or $this->safeMode) {
             return null;
         }
 
-        if (preg_match('/^<(\w[\w-]*)(?:[ ]*' . $this->regexHtmlAttribute . ')*[ ]*(\/)?>/', $Line['text'], $matches)) {
-            $element = strtolower($matches[1]);
+        if (preg_match('/^<(\w[\w-]*)(?:[ ]*' . $this->regexHtmlAttribute . ')*[ ]*(\/)?>/', $Line->text, $matches)) {
+            $elem = strtolower($matches[1]);
 
-            if (in_array($element, $this->textLevelElements, true)) {
+            if (in_array($elem, $this->textLevelElements, true)) {
                 return null;
             }
 
@@ -891,13 +890,13 @@ class Sideways
                 'name'    => $matches[1],
                 'depth'   => 0,
                 'element' => [
-                    'rawHtml'   => $Line['text'],
+                    'rawHtml'   => $Line->text,
                     'autobreak' => true,
                 ],
             ];
 
             $length = strlen($matches[0]);
-            $remainder = substr($Line['text'], $length);
+            $remainder = substr($Line->text, $length);
 
             if (trim($remainder) === '') {
                 if (isset($matches[2]) or in_array($matches[1], $this->voidElements, true)) {
@@ -918,7 +917,7 @@ class Sideways
         return null;
     }
 
-    protected function blockMarkupContinue(array $Line, array $Block): ?array
+    protected function blockMarkupContinue(Line $Line, array $Block): ?array
     {
         if ($this->extra) {
             return $this->_blockMarkupContinue_Extra($Line, $Block);
@@ -928,24 +927,24 @@ class Sideways
             return null;
         }
 
-        $Block['element']['rawHtml'] .= "\n" . $Line['body'];
+        $Block['element']['rawHtml'] .= "\n" . $Line->body;
 
         return $Block;
     }
 
-    protected function _blockMarkupContinue_Extra(array $Line, array $Block): ?array
+    protected function _blockMarkupContinue_Extra(Line $Line, array $Block): ?array
     {
         if (isset($Block['closed'])) {
             return null;
         }
 
         if (preg_match('/^<' . $Block['name'] . '(?:[ ]*' . $this->regexHtmlAttribute . ')*[ ]*>/i',
-            $Line['text'])) # open
+            $Line->text)) # open
         {
             $Block['depth']++;
         }
 
-        if (preg_match('/(.*?)<\/' . $Block['name'] . '>[ ]*$/i', $Line['text'])) {
+        if (preg_match('/(.*?)<\/' . $Block['name'] . '>[ ]*$/i', $Line->text)) {
             if ($Block['depth'] > 0) {
                 $Block['depth']--;
             } else {
@@ -958,7 +957,7 @@ class Sideways
             unset($Block['interrupted']);
         }
 
-        $Block['element']['rawHtml'] .= "\n" . $Line['body'];
+        $Block['element']['rawHtml'] .= "\n" . $Line->body;
 
         return $Block;
     }
@@ -975,10 +974,10 @@ class Sideways
         return $Block;
     }
 
-    protected function blockReference(array $Line): ?array
+    protected function blockReference(Line $Line): ?array
     {
-        if (str_contains($Line['text'], ']')
-            and preg_match('/^\[(.+?)\]:[ ]*+<?(\S+?)>?(?:[ ]+["\'(](.+)["\')])?[ ]*+$/', $Line['text'], $matches)
+        if (str_contains($Line->text, ']')
+            and preg_match('/^\[(.+?)\]:[ ]*+<?(\S+?)>?(?:[ ]+["\'(](.+)["\')])?[ ]*+$/', $Line->text, $matches)
         ) {
             $id = strtolower($matches[1]);
 
@@ -1004,20 +1003,20 @@ class Sideways
 
         if (
             !str_contains($Block['element']['handler']['argument'], '|')
-            and !str_contains($Line['text'], '|')
-            and !str_contains($Line['text'], ':')
+            and !str_contains($Line->text, '|')
+            and !str_contains($Line->text, ':')
             or str_contains($Block['element']['handler']['argument'], "\n")
         ) {
             return null;
         }
 
-        if (rtrim($Line['text'], ' -:|') !== '') {
+        if (rtrim($Line->text, ' -:|') !== '') {
             return null;
         }
 
         $alignments = [];
 
-        $divider = $Line['text'];
+        $divider = $Line->text;
 
         $divider = trim($divider);
         $divider = trim($divider, '|');
@@ -1108,16 +1107,16 @@ class Sideways
         return $Block;
     }
 
-    protected function blockTableContinue(array $Line, array $Block): ?array
+    protected function blockTableContinue(Line $Line, array $Block): ?array
     {
         if (isset($Block['interrupted'])) {
             return null;
         }
 
-        if (count($Block['alignments']) === 1 or $Line['text'][0] === '|' or strpos($Line['text'], '|')) {
+        if (count($Block['alignments']) === 1 or $Line->text[0] === '|' or strpos($Line->text, '|')) {
             $Elements = [];
 
-            $row = $Line['text'];
+            $row = $Line->text;
 
             $row = trim($row);
             $row = trim($row, '|');
@@ -1159,7 +1158,7 @@ class Sideways
         return null;
     }
 
-    protected function paragraph(array $Line): array
+    protected function paragraph(Line $Line): array
     {
         return [
             'type'    => 'Paragraph',
@@ -1167,20 +1166,20 @@ class Sideways
                 'name'    => 'p',
                 'handler' => [
                     'function'    => $this->lineElements(...),
-                    'argument'    => $Line['text'],
+                    'argument'    => $Line->text,
                     'destination' => 'elements',
                 ],
             ],
         ];
     }
 
-    protected function paragraphContinue(array $Line, array $Block): ?array
+    protected function paragraphContinue(Line $Line, array $Block): ?array
     {
         if (isset($Block['interrupted'])) {
             return null;
         }
 
-        $Block['element']['handler']['argument'] .= "\n" . $Line['text'];
+        $Block['element']['handler']['argument'] .= "\n" . $Line->text;
 
         return $Block;
     }
@@ -1793,8 +1792,7 @@ class Sideways
                 continue;
             }
 
-            $autoBreakNext = ($Element['autobreak'] ?? isset($Element['name'])
-            );
+            $autoBreakNext = ($Element['autobreak'] ?? isset($Element['name']));
             // (autobreak === false) covers both sides of an element
             $autoBreak = !$autoBreak ? $autoBreak : $autoBreakNext;
 
@@ -1910,9 +1908,9 @@ class Sideways
 
     //region "Extra" methods
 
-    protected function blockAbbreviation(array $Line): ?array
+    protected function blockAbbreviation(Line $Line): ?array
     {
-        if (preg_match('/^\*\[(.+?)\]:[ ]*(.+?)[ ]*$/', $Line['text'], $matches)) {
+        if (preg_match('/^\*\[(.+?)\]:[ ]*(.+?)[ ]*$/', $Line->text, $matches)) {
             $this->_abbreviations[$matches[1]] = $matches[2];
 
             return ['hidden' => true];
@@ -1920,9 +1918,9 @@ class Sideways
         return null;
     }
 
-    protected function blockFootnote(array $Line): ?array
+    protected function blockFootnote(Line $Line): ?array
     {
-        if (preg_match('/^\[\^(.+?)\]:[ ]?(.*)$/', $Line['text'], $matches)) {
+        if (preg_match('/^\[\^(.+?)\]:[ ]?(.*)$/', $Line->text, $matches)) {
             return [
                 'label'  => $matches[1],
                 'text'   => $matches[2],
@@ -1932,20 +1930,20 @@ class Sideways
         return null;
     }
 
-    protected function blockFootnoteContinue(array $Line, array $Block): ?array
+    protected function blockFootnoteContinue(Line $Line, array $Block): ?array
     {
-        if ($Line['text'][0] === '[' and preg_match('/^\[\^(.+?)\]:/', $Line['text'])) {
+        if ($Line->text[0] === '[' and preg_match('/^\[\^(.+?)\]:/', $Line->text)) {
             return null;
         }
 
         if (isset($Block['interrupted'])) {
-            if ($Line['indent'] >= 4) {
-                $Block['text'] .= "\n\n" . $Line['text'];
+            if ($Line->indent >= 4) {
+                $Block['text'] .= "\n\n" . $Line->text;
 
                 return $Block;
             }
         } else {
-            $Block['text'] .= "\n" . $Line['text'];
+            $Block['text'] .= "\n" . $Line->text;
 
             return $Block;
         }
@@ -1963,7 +1961,7 @@ class Sideways
         return $Block;
     }
 
-    protected function blockDefinitionList(array $Line, array $Block): ?array
+    protected function blockDefinitionList(Line $Line, array $Block): ?array
     {
         if (!isset($Block) or $Block['type'] !== 'Paragraph') {
             return null;
@@ -1992,13 +1990,13 @@ class Sideways
         return $this->addDdElement($Line, $Block);
     }
 
-    protected function blockDefinitionListContinue(array $Line, array $Block): ?array
+    protected function blockDefinitionListContinue(Line $Line, array $Block): ?array
     {
-        if ($Line['text'][0] === ':') {
+        if ($Line->text[0] === ':') {
             return $this->addDdElement($Line, $Block);
         }
 
-        if (isset($Block['interrupted']) and $Line['indent'] === 0) {
+        if (isset($Block['interrupted']) and $Line->indent === 0) {
             return null;
         }
 
@@ -2011,7 +2009,7 @@ class Sideways
             unset($Block['interrupted']);
         }
 
-        $text = substr($Line['body'], min($Line['indent'], 4));
+        $text = substr($Line->body, min($Line->indent, 4));
 
         $Block['dd']['handler']['argument'] .= "\n" . $text;
 
@@ -2076,9 +2074,9 @@ class Sideways
 
     //region "Extra" Utility Methods (Apparently Unused)
 
-    protected function addDdElement(array $Line, array $Block): array
+    protected function addDdElement(Line $Line, array $Block): array
     {
-        $text = substr($Line['text'], 1);
+        $text = substr($Line->text, 1);
         $text = trim($text);
 
         unset($Block['dd']);
