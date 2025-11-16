@@ -3,6 +3,8 @@
 namespace AspireBuild\Tools\WpPlugin;
 
 use AspireBuild\Util\Regex;
+use HTMLPurifier;
+use HTMLPurifier_Config;
 use League\CommonMark\Environment\Environment;
 use League\CommonMark\Extension\Autolink\AutolinkExtension;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
@@ -385,7 +387,8 @@ class ReadmeParser
 
     private function render_markdown(string $text): string
     {
-        return $this->get_markdown_converter()->convert($text);
+        $text = $this->get_markdown_converter()->convert($text)->getContent();
+        return $this->get_html_purifier()->purify($text);
     }
 
     private function get_markdown_converter(): MarkdownConverter
@@ -408,6 +411,19 @@ class ReadmeParser
         $environment->addExtension(new TableExtension());
 
         return new MarkdownConverter($environment);
+    }
+
+    private function get_html_purifier(): HtmlPurifier
+    {
+        static $purifier;
+        return $purifier ??= $this->_get_html_purifier();
+    }
+
+    private function _get_html_purifier(): HtmlPurifier
+    {
+        $config = HTMLPurifier_Config::createDefault();
+        $config->set('Core', 'SerializerPath', tempnam(sys_get_temp_dir(), 'htmlpurifier_'));
+        return new HTMLPurifier($config);
     }
 
     /* disabled code below

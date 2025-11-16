@@ -13,7 +13,8 @@
         "symfony/var-dumper": "^7.3",
         "ext-dom": "*",
         "ext-libxml": "*",
-        "league/commonmark": "^2.7"
+        "league/commonmark": "^2.7",
+        "ezyang/htmlpurifier": "^4.19"
     },
     "require-dev": {
         "roave/security-advisories": "dev-latest",

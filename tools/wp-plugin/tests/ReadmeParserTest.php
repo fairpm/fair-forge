@@ -134,16 +134,6 @@ class ReadmeParserTest extends TestCase
             1. Numbered list items ([foo](http://bar.baz))
             2. Turn into screenshot links
 
-            == Random Section That Doesn't Belong Anywhere ==
-
-            > Here's a quoted line
-            > And another right below it.
-
-                                                               Here's a way-indented line
-
-            And another regular line.
-
-
             == Upgrade Notice ==
 
             = 3.1.2 =
@@ -303,8 +293,17 @@ class ReadmeParserTest extends TestCase
             Screenshots go here but only things in list tags make it into the property
 
             * anything in a markdown list will do
-            * it can have arbitrary markup <a href="http://google.com" onclick="alert('HE COMES')">and links</a>
+            * it can have arbitrary markup <a href="http://zalgo.org" onmouseover="alert('HE COMES')">and links</a>
             * ![the horror that awaits you](https://comicskingdom.com/_next/image?url=https%3A%2F%2Fwp.comicskingdom.com%2Fcomicskingdom-redesign-uploads-production%2F1995%2F12%2FFC-Sunday-8-19-Print-copy-scaled.jpg&w=3840&q=75)
+
+            == Random Section That Doesn't Belong Anywhere ==
+
+            > Here's a quoted line
+            > And another right below it.
+
+                                                               Here's a way-indented line
+
+            And another regular line.
 
             ## Changelog
 
@@ -337,17 +336,22 @@ class ReadmeParserTest extends TestCase
             '_warnings'         => [],
         ], (array)$readme);
 
-        // Note that the opening brackets of <script> and <title> are specifically escaped by DisallowedRawHtmlExtension
-
         $expected_description = <<<"END"
             <p>This is not just a plugin, it symbolizes the mounting horror and insanity of an entire generation.  Ia! Ia! Cthulhu Ftagn!.</p>
             <p>When activated you will notice nothing, but gradually care about nothing, until your soul is an empty vessel
             into which the visions of his grand dread majesty will materialize and take form through your husk of a body
             as you do his bidding in the hopes that you shall be among those to watch the flames which consume the universe
             to base ash so that you may be be last to be burned in unholy eldritch fire.</p>
-            &lt;script lang="eldritch">Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn&lt;/script>
-            <p>Oh, and it also shows lyrics from Louis Armstrong's famous song &lt;title>Hello Dolly&lt;/title> on your admin dashboard.
-            other notes here... (parsed or not, no idea)</p>
+            &lt;script lang="eldritch"&gt;Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn&lt;/script&gt;
+            <p>Oh, and it also shows lyrics from Louis Armstrong's famous song &lt;title&gt;Hello Dolly&lt;/title&gt; on your admin dashboard.
+            other notes here... (parsed or not, no idea)</p><h3>Random Section That Doesn't Belong Anywhere</h3>
+            <blockquote>
+            <p>Here's a quoted line
+            And another right below it.</p>
+            </blockquote>
+            <pre><code>                                               Here's a way-indented line
+            </code></pre>
+            <p>And another regular line.</p>
 
             END;
 
@@ -362,7 +366,7 @@ class ReadmeParserTest extends TestCase
             <p>Screenshots go here but only things in list tags make it into the property</p>
             <ul>
             <li>anything in a markdown list will do</li>
-            <li>it can have arbitrary markup <a href="http://zalgo.org" onclick="alert('HE COMES')">and links</a></li>
+            <li>it can have arbitrary markup <a href="http://zalgo.org">and links</a></li>
             <li><img src="https://comicskingdom.com/_next/image?url=https%3A%2F%2Fwp.comicskingdom.com%2Fcomicskingdom-redesign-uploads-production%2F1995%2F12%2FFC-Sunday-8-19-Print-copy-scaled.jpg&amp;w=3840&amp;q=75" alt="the horror that awaits you" /></li>
             </ul>
 
