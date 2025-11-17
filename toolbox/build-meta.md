@@ -13,26 +13,37 @@ This JSON metadata document is _separate_ from the publisher-provided (signed) *
 
 This JSON metadata document contains meta which relates to the package generally rather than to a specific release.
 
-| Key                 | Req'd | Data Source                   | Value, FAIR Format                     |
-| ------------------- | ----- | ----------------------------- | -------------------------------------- |
-| `domain_alias`      | no    | external dns validation       | string with result                     |
-| `domain_reputation` | no    | external checks, APIs         | json list with results                 |
-| `domain_rbls`       | no    | external checks, APIs         | json list with results                 |
-| `provenance`        | no    | publisher attestations        | json document                          |
-| `project_health`    | no    | generated                     | json `project-health` document         |
-| `package_labels`    | no    | various labellers             | json list of appied labels             |
-| `build_meta_labels` | no    | various tools in AB toolchain | json list of labels from compiled meta |
+| Key                   | Req'd | Data Source                   | Value, FAIR Format                     |
+| --------------------- | ----- | ----------------------------- | -------------------------------------- |
+| `domain_verification` | no    | external dns validation       | json `domain-verification` document    |
+| `provenance`          | no    | publisher attestations        | json document                          |
+| `project_health`      | no    | generated                     | json `project-health` document         |
+| `package_labels`      | no    | various labellers             | json list of appied labels             |
+| `build_meta_labels`   | no    | various tools in AB toolchain | json list of labels from compiled meta |
+
+
+### Domain Verification Document
+
+This JSON metadata document contains verifications based on the package's domain name, if supplied
+
+| Key                 | Req'd | Data Source             | Value, FAIR Format       |
+| ------------------- | ----- | ----------------------- | ------------------------ |
+| `domain_alias`      | no    | external dns validation | string with result       |
+| `domain_reputation` | no    | external checks, APIs   | json list with results   |
+| `domain_rbls`       | no    | external checks, APIs   | json list with results   |
+| `dns_record`        | no    | external checks, APIs   | json list with results   |
 
 
 ### Project Health Document
 
-This JSON metadata document contains compiled meta for assessing the overall health of the project and application of best practices. For examples of factors to be evaluated, see
-- [How to creaate a healthy GitHub repository](https://joost.blog/healthy-github-repository/)
+This JSON metadata document contains compiled meta for assessing the overall health of the project and its application of best practices. For examples of factors to be evaluated, see
 - [OpenSSF Scorecard](https://scorecard.dev/)
 - [OpenCode Badge Program](https://opencode.de/en/knowledge/software-index/badges-en)
 - [AspireBuild Toolbox](toolbox/readme.md)
 - [Validation Tools](toolbox/validation-toolchain/readme.md)
 - [Verification Tools](toolbox/verification-toolchain/readme.md)
+- [Measuring the Health of Git Repositories](https://augmentable.medium.com/measuring-the-health-of-git-repositories-%EF%B8%8F-c0dea98c9ca5)
+- [How to creaate a healthy GitHub repository](https://joost.blog/healthy-github-repository/)
 
 | Key                 | Req'd | Data Source                | Value, FAIR Format                           |
 | ------------------- | ----- | -------------------------- | -------------------------------------------- |
@@ -50,6 +61,7 @@ This JSON metadata document contains meta wich relates to a specific release (ve
 | Key                | Req'd | Data Source                | Value, FAIR Format                           |
 | ------------------ | ----- | -------------------------- | -------------------------------------------- |
 | `version`          | yes   | Plugin headers             | string                                       |
+| `commit`           | no    | Repo                       | Repo's commit hash or id                     |
 | `release_date`     | yes   | infer from svn?            | ISO formatted date string, YYYY-MM-DD        |
 | `sbom`             | yes   |                            | [SPDX](https://spdx.dev/)-formatted SBOM     |
 | `cve`              | no    | API requests               | cve label                                    |
