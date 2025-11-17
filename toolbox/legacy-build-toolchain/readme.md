@@ -27,6 +27,7 @@ Received packages are presumed to have been verified by WordPress.org using [Plu
   - Publisher contact
   - Security contact & VDP
     - Create security.md if missing
+    - Check available APIs, _e.g._, https://patchstack.com/database/api/v2/vdp/elementor 
   - Support channel
   - Append contact info to package-meta & build-meta
 
