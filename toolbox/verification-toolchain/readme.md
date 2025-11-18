@@ -32,7 +32,9 @@ This toolchain consists of tools for verifying the various attestations about a 
 
 ### 4. CVE Checks
 - Check published CVE lists for package using available APIs
-  - Patchstack
+  - Patchstack API
+  - [Prototype CVE Labeller](https://github.com/fairpm/cve-labeller)
+  - [WP-CLI Vulnerability Scanner (10Up)](https://github.com/10up/wpcli-vulnerability-scanner) (Supports [WPScan](https://wpscan.com/)/[WP Vuln DB](http://wpvulndb.com/), [Patchstack](https://patchstack.com/), [WordFence Intelligence](https://www.wordfence.com/threat-intel/)
 - Check time from exposure to patch for past CVEs
 - Append results to build-meta per spec
 
