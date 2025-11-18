@@ -34,14 +34,22 @@ This toolchain consists of tools for validating the various attributes of a pack
 - Heuristic malware scan
 - Append results to build-meta per spec
 
-### 4. Runtime Checks
+### 4. AI Code Detection
+- [AI Code Detector](https://www.code-detector.ai/detector) by [Span App](https://www.span.app/)
+- [Botsniffer](https://github.com/oscarvalenzuelab/botsniffer)
+- Append results to build-meta per spec
+_(Relates to repo health: AI-generated code is less likely to be maintained unless it represents only a small percentage of the codebase.)_
+
+### 5. Runtime Checks
 - No unexpected filesystem modification
 - No unexpected http calls
 - No console errors
 - No PHP errors or warnings
+- Performance checks
+- [Code Profiler](https://wordpress.org/plugins/code-profiler/) / [Code Profiler](https://nintechnet.com/codeprofiler/)
 - Append results to build-meta per spec
 
-### 5. Package Meta Validation
+### 6. Package Meta Validation
 - Confirm required metadata is present and properly formatted
   - Publisher Contact
   - Support contact
