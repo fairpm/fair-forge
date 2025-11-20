@@ -2,6 +2,23 @@
 
 Certain trust signals will require human review, either to gather data or to evaluate it once it has been gathered electronically. The following overview provides some specific trust signals to be gathered and evaluated, though some will be for future enhancements.
 
+## Reference Material for Human Reviewers
+
+The following resources may be helpful in identifying factors for evaluating project or repo health as trust signals.
+
+- .org handbook: [Performing Reviews – Make WordPress Plugins](https://make.wordpress.org/plugins/handbook/performing-reviews/)
+- [OpenSSF Scorecard](https://scorecard.dev/)
+- [OpenCode Badge Program](https://opencode.de/en/knowledge/software-index/badges-en)
+- [Measuring the Health of Git Repositories](https://augmentable.medium.com/measuring-the-health-of-git-repositories-%EF%B8%8F-c0dea98c9ca5)
+- [How to creaate a healthy GitHub repository](https://joost.blog/healthy-github-repository/)
+
+### Other Human-Reviewed Factors as Trust Signals
+
+- Governance model, if multiple contributors
+- Nulled plugin policy
+- Community reputation of Developers, Contributors, & Publisher
+
+
 ## Attestations
 
 Beyond the basic package meta which is required by .org and/or FAIR, additional attestations may be valuable to building trust, particularly if they are electronically verifiable.
