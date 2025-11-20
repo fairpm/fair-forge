@@ -20,6 +20,8 @@ This toolchain consists of tools for validating the various attributes of a pack
 
 ### 2. Static Checks: PHP Code Scan
 - Same code-scanning checks as run for .org repo
+  - [Theme-Check](https://github.com/WordPress/theme-check/tree/master/checks)
+  - [Plugin-Check](https://github.com/WordPress/plugin-check/tree/trunk)
 - PHPCS scan using .org rules with FAIR additions:
   - PHP version min/max check
   - Core version min/max check
