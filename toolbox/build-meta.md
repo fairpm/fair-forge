@@ -36,14 +36,7 @@ This JSON metadata document contains verifications based on the package's domain
 
 ### Project Health Document
 
-This JSON metadata document contains compiled meta for assessing the overall health of the project and its application of best practices. For examples of factors to be evaluated, see
-- [OpenSSF Scorecard](https://scorecard.dev/)
-- [OpenCode Badge Program](https://opencode.de/en/knowledge/software-index/badges-en)
-- [AspireBuild Toolbox](toolbox/readme.md)
-- [Validation Tools](toolbox/validation-toolchain/readme.md)
-- [Verification Tools](toolbox/verification-toolchain/readme.md)
-- [Measuring the Health of Git Repositories](https://augmentable.medium.com/measuring-the-health-of-git-repositories-%EF%B8%8F-c0dea98c9ca5)
-- [How to creaate a healthy GitHub repository](https://joost.blog/healthy-github-repository/)
+This JSON metadata document contains compiled meta for assessing the overall health of the project and its application of best practices.
 
 | Key                 | Req'd | Data Source                | Value, FAIR Format                           |
 | ------------------- | ----- | -------------------------- | -------------------------------------------- |
