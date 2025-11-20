@@ -28,11 +28,16 @@ This toolchain consists of tools for verifying the various attestations about a 
   - Verify email addresses are deliverable: roll our own or use APIs like (e.g.) [Verifalia](https://verifalia.com/developers), [Email Hippo](https://tools.emailhippo.com/), or [VerifyMail](https://verifymail.io/) 
   - Verify no disposable email addresses; roll our own or use APIs such as [Email Hippo](https://tools.emailhippo.com/Apps/Disposable_Email_Address_Detector) or [DeBounce](https://debounce.io/free-disposable-check-api/)
   - Verify URLS provided are live and contain the required contact information
+- [WordPress Plugin Attestation](https://github.com/johnbillion/action-wordpress-plugin-attestation) Github action by John Blackbourn
 - Append results to build-meta per spec
 
 ### 4. CVE Checks
 - Check published CVE lists for package using available APIs
   - Patchstack API
+  - [Snyk Vulnerability Database](https://security.snyk.io/)
+  - [WPVulnerability Database API](https://www.wpvulnerability.com/) free API; Javier Casares & other contributors
+  - [OpeCVE](https://www.opencve.io/) ([docs](https://docs.opencve.io/)) self-hosted or SaaS app to monitor CVEs
+  - [Wordfence Intelligence](https://www.wordfence.com/products/wordfence-intelligence/) / [API Docs](https://www.wordfence.com/help/wordfence-intelligence/v2-accessing-and-consuming-the-vulnerability-data-feed/)
   - [Prototype CVE Labeller](https://github.com/fairpm/cve-labeller)
   - [WP-CLI Vulnerability Scanner (10Up)](https://github.com/10up/wpcli-vulnerability-scanner) (Supports [WPScan](https://wpscan.com/)/[WP Vuln DB](http://wpvulndb.com/), [Patchstack](https://patchstack.com/), [WordFence Intelligence](https://www.wordfence.com/threat-intel/)
 - Check time from exposure to patch for past CVEs
