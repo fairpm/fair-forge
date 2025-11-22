@@ -61,7 +61,7 @@ See [FAIR Metadata Document specification](https://github.com/fairpm/fair-protoc
 
 
 
-# Mapping: Build FAIR Metadata from Legacy Package Sources
+# Mapping: Create FAIR Metadata formats from Legacy Package Sources
 
 ## (Package) Metadata Document
 
@@ -89,7 +89,7 @@ Refer to [DID Document](https://github.com/fairpm/fair-protocol/blob/main/specif
 - `service` : id, endpoint, type
 - `verificationMethod` : includes `publicKeyMultibase` key value
 
-*Also added to [Build Meta Document](toolbox/build-meta.md).
+*Also added to [FAIR Forge Meta Document](toolbox/fair-forge-meta.md).
 
 
 ## Sections Document
@@ -174,5 +174,5 @@ All values are optional, but at least one must exist. Refer to [FAIR artifacts s
 - revenue model
 - PHP max version (negative selector)
 
-*Add to [Build Meta Document](toolbox/build-meta.md) as `build_meta_labels`.
+*Add to [FAIR Forge Meta Document](toolbox/fair-forge-meta.md) as `fair_forge_meta_labels`.
 
