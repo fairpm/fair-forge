@@ -2,12 +2,15 @@
 
 This toolchain consists of tools for verifying the various attestations about a package. Given a package with FAIR-formatted meta, the toolchain will generate metadata for use in assigning a trust score, including evaluation of whether a package (or release) should be accepted for FAIR federation and aggregation. The same tools are run on the package, regardless of its origin. Verification tools are run to verify attestations against external sourcees.
 
+
 ## Verification Tools
+
 
 ### 1. Package Integrity
 - Confirm checksum accuracy
 - Confirm package & metadata signature
 - Unzip or unpack archive file
+
 
 ### 2. DID & Domain Verification
 - Verify DID Document
@@ -15,7 +18,8 @@ This toolchain consists of tools for verifying the various attestations about a 
 - If MX record exists, verify DNS includes SPF, DMARC, DKIM
 - Check domain reputation (e.g., [Spamhaus](https://www.spamhaus.org/domain-reputation/), [Cisco Talos](https://www.talosintelligence.com/reputation_center), [APIVoid](https://www.apivoid.com/api/domain-reputation/), _etc._)
 - RBL check for domain
-- Append results to build-meta per spec
+- Append results to fair-forge-meta per spec
+
 
 ### 3. Provenance & Attestation Checks
 - Check for VDP
@@ -29,7 +33,8 @@ This toolchain consists of tools for verifying the various attestations about a 
   - Verify no disposable email addresses; roll our own or use APIs such as [Email Hippo](https://tools.emailhippo.com/Apps/Disposable_Email_Address_Detector) or [DeBounce](https://debounce.io/free-disposable-check-api/)
   - Verify URLS provided are live and contain the required contact information
 - [WordPress Plugin Attestation](https://github.com/johnbillion/action-wordpress-plugin-attestation) Github action by John Blackbourn
-- Append results to build-meta per spec
+- Append results to fair-forge-meta per spec
+
 
 ### 4. CVE Checks
 - Check published CVE lists for package using available APIs
@@ -41,7 +46,8 @@ This toolchain consists of tools for verifying the various attestations about a 
   - [Prototype CVE Labeller](https://github.com/fairpm/cve-labeller)
   - [WP-CLI Vulnerability Scanner (10Up)](https://github.com/10up/wpcli-vulnerability-scanner) (Supports [WPScan](https://wpscan.com/)/[WP Vuln DB](http://wpvulndb.com/), [Patchstack](https://patchstack.com/), [WordFence Intelligence](https://www.wordfence.com/threat-intel/)
 - Check time from exposure to patch for past CVEs
-- Append results to build-meta per spec
+- Append results to fair-forge-meta per spec
+
 
 ### 5. Repo Profiler
 - 2FA enabled/required
@@ -52,11 +58,12 @@ This toolchain consists of tools for verifying the various attestations about a 
 - Repo age
 - Changelog for all releases
 - https enforced _e.g._, [testssl.sh](https://github.com/span/testssl.sh) or curl, _etc._ and check port 80 is closed or redirected
-- Append results to build-meta per spec
+- Append results to fair-forge-meta per spec
+
 
 ### 6. Label Application
-- Apply labels inferred from package-meta & build-meta
+- Apply labels inferred from package-meta & fair-forge-meta
 - Apply subscribed third-party labels for the package
-- Append results to build-meta per spec
+- Append results to fair-forge-meta per spec
 
 
