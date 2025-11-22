@@ -26,10 +26,15 @@ Received packages are presumed to have been verified by WordPress.org using [Plu
 
 ### Step 4: Contact Info Parser
   - Publisher contact
+  - Support channel
   - Security contact & VDP
     - Check supplied meta & available APIs, _e.g._, https://patchstack.com/database/api/v2/vdp/elementor
-    - Create security.md if missing
-  - Support channel
+    - Check for `security.txt` file in website's root or `.well-known/` directories
+    - Check for `security.txt` file in package's root directory
+    - Create `security.md` file if missing
+    - If there is a single contributor to the package, they become the security contact
+      - Else if the publisher is an organization that we can parse a contact from use that
+      - Else the security contact is wordpress.org
   - Append contact info to package-meta & build-meta per spec
 
 ### Step 5: Observed SBOM Generator
