@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace AspireBuild\Tools\WpPlugin;
+namespace FAIR\Forge\Tools\WpPlugin;
 
-use AspireBuild\Util\Regex;
+use FAIR\Forge\Util\Regex;
 
 class HeaderParser
 {

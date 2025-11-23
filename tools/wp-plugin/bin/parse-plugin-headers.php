@@ -2,10 +2,10 @@
 <?php
 declare(strict_types=1);
 
-require_once $_ENV['ASPIREBUILD'] . '/vendor/autoload.php';
+require_once $_ENV['FAIR_FORGE'] . '/vendor/autoload.php';
 
-use AspireBuild\Tools\WpPlugin\HeaderParser;
-use AspireBuild\Util\Json;
+use FAIR\Forge\Tools\WpPlugin\HeaderParser;
+use FAIR\Forge\Util\Json;
 
 $parser = new HeaderParser();
 

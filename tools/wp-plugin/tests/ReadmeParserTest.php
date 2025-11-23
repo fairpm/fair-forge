@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
 
-namespace Tests\AspireBuild\Tools\WpPlugin;
+namespace Tests\FAIR\Forge\Tools\WpPlugin;
 
-use AspireBuild\Tools\WpPlugin\ReadmeParser;
+use FAIR\Forge\Tools\WpPlugin\ReadmeParser;
 use PHPUnit\Framework\TestCase;
 
 class ReadmeParserTest extends TestCase

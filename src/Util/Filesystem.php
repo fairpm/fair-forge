@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace AspireBuild\Util;
+namespace FAIR\Forge\Util;
 
 class Filesystem
 {

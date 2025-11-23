@@ -1,5 +1,5 @@
 {
-    "name": "fairpm/aspirebuild",
+    "name": "fairpm/fair-forge",
     "authors": [
         {
             "name": "Chuck Adams",
@@ -26,13 +26,13 @@
     },
     "autoload": {
         "psr-4": {
-            "AspireBuild\\": "src",
-            "AspireBuild\\Tools\\WpPlugin\\": "tools/wp-plugin/src/"
+            "FAIR\\Forge\\": "src",
+            "FAIR\\Forge\\Tools\\WpPlugin\\": "tools/wp-plugin/src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Tests\\AspireBuild\\Tools\\WpPlugin\\": "tools/wp-plugin/tests/"
+            "Tests\\FAIR\\Forge\\Tools\\WpPlugin\\": "tools/wp-plugin/tests/"
         }
     }
 }

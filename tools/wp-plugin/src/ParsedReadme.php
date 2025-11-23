@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace AspireBuild\Tools\WpPlugin;
+namespace FAIR\Forge\Tools\WpPlugin;
 
 use JsonSerializable;
 

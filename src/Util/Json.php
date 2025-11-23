@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace AspireBuild\Util;
+namespace FAIR\Forge\Util;
 
 use Safe\Exceptions\JsonException;
 use stdClass;

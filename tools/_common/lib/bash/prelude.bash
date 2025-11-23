@@ -13,13 +13,13 @@ function warn  { echo "$@" >&2; }
 function die   { warn "$@"; exit 1; }
 
 # This is set in flake.nix, so this will only be blank if not in a nix environment.
-[[ -n $ASPIREBUILD ]] || die "ASPIREBUILD environment variable not set.  Please set it to the absolute path of an AspireBuild git repo."
+[[ -n $FAIR_FORGE ]] || die "FAIR_FORGE environment variable not set.  Please set it to the absolute path of a FAIR Forge git repo."
 
 # We bail out early if our working directory contains spaces, rather than risk stepping on this mine later.
 # We make reasonable efforts to quote bash arguments, but 'bash' and 'reasonable' do not belong in the same sentence.
-[[ "$ASPIREBUILD" =~ [[:space:]] ]] && die "Refusing to deal with aspirebuild directory containing whitespace.  Aborted."
+[[ "$FAIR_FORGE" =~ [[:space:]] ]] && die "Refusing to deal with FAIR_FORGE directory containing whitespace.  Aborted."
 
-cd "$ASPIREBUILD"
+cd "$FAIR_FORGE"
 
 # Run all prelude files under the current tool's lib (usually symlinked to tools/_common/lib)
 preludes=$(

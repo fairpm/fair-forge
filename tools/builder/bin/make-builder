@@ -3,7 +3,7 @@
 # shellcheck disable=SC2086
 source "$(dirname $0)"/../lib/bash/prelude.bash
 
-builders=${ASPIREBUILD_BUILDER_DIR:-$ASPIREBUILD/builders}
+builders=${FAIR_FORGE_BUILDERS_DIR:-$FAIR_FORGE/builders}
 mkdir -p "$builders"
 
 builder=${1:-$(mktemp -d $builders/builder.XXXXXXXXXX)}

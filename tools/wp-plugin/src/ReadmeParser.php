@@ -1,8 +1,8 @@
 <?php
 
-namespace AspireBuild\Tools\WpPlugin;
+namespace FAIR\Forge\Tools\WpPlugin;
 
-use AspireBuild\Util\Regex;
+use FAIR\Forge\Util\Regex;
 use Ds\Deque;
 use HTMLPurifier;
 use HTMLPurifier_Config;
