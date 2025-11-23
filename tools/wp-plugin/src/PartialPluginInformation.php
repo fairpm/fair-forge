@@ -6,7 +6,7 @@ namespace FAIR\Forge\Tools\WpPlugin;
 // Represents as much of a plugins/info/1.2/?action=plugin_information response as we can statically determine,
 // with null values standing in for fields that must be filled in later.  Does no validation or normalization.
 
-readonly class PartialPluginInformation
+readonly class PartialPluginInformation implements \JsonSerializable
 {
     public function __construct(
         // name, slug, and version are all required.  Everything else defaults to null.
@@ -63,12 +63,12 @@ readonly class PartialPluginInformation
 
     ) {}
 
-    public function toArray(): array
+    public function jsonSerialize(): array
     {
         return array_filter(get_object_vars($this), static fn($v) => $v !== null);
     }
 
-    public function fromHeadersAndReadme(
+    public static function fromHeadersAndReadme(
         string $slug,
         ParsedPluginHeaders $headers,
         ParsedReadme $readme,
@@ -79,23 +79,23 @@ readonly class PartialPluginInformation
             slug             : $slug,
             version          : $headers->version,
             author           : $headers->author,
-            author_profile   : $headers->author_uri,
+            author_profile   : $headers->author_uri ?: null,
             description      : $readme->sections['description'] ?? $headers->description,
-            donate_link      : $readme->donate_link,
-            requires         : $headers->requires_wp ?? $readme->requires_wp,
-            requires_php     : $headers->requires_php ?? $readme->requires_php,
-            short_description: $readme->short_description ?? $headers->description,
-            sections         : $readme->sections,
-            tags             : $readme->tags,
-            tested           : $headers->tested_up_to ?? $readme->tested_up_to,
-            domain_path      : $headers->domain_path,
-            license          : $headers->license ?? $readme->license,
-            license_uri      : $headers->license_uri ?? $readme->license_uri,
-            network          : $headers->network,
-            plugin_uri       : $headers->plugin_uri,
-            stable_tag       : $readme->stable_tag,
-            text_domain      : $headers->text_domain,
-            update_uri       : $headers->update_uri,
+            donate_link      : $readme->donate_link ?: null,
+            requires         : $headers->requires_wp ?? $readme->requires_wp ?: null,
+            requires_php     : $headers->requires_php ?? $readme->requires_php ?: null,
+            short_description: $readme->short_description ?? $headers->description ?: null,
+            sections         : $readme->sections ?: null,
+            tags             : $readme->tags ?: null,
+            tested           : $headers->tested_up_to ?? $readme->tested_up_to ?: null,
+            domain_path      : $headers->domain_path ?: null,
+            license          : $headers->license ?? $readme->license ?: null,
+            license_uri      : $headers->license_uri ?? $readme->license_uri ?: null,
+            network          : $headers->network ?: null,
+            plugin_uri       : $headers->plugin_uri ?: null,
+            stable_tag       : $readme->stable_tag ?: null,
+            text_domain      : $headers->text_domain ?: null,
+            update_uri       : $headers->update_uri ?: null,
         );
         // requires_plugins : $headers->requires_plugins, // needs parsing
         // contributors     : $readme->contributors,      // needs db lookups
