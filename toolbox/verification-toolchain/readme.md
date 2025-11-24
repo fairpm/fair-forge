@@ -10,7 +10,15 @@ This toolchain consists of tools for verifying the various attestations about a 
 - Confirm checksum accuracy
 - Confirm package & metadata signature
 - Unzip or unpack archive file
-
+- Check for anything unpacked as world-writeable (octal --6 or --7)
+- Check for presence of required & recommended files:
+  - `readme.txt`
+  - `readme.md`
+  - `security.md`
+  - `contributing.md`
+  - `code-of-conduct.md`
+  - license file (e.g., GPL)
+- Append results to fair-forge-meta per spec
 
 ### 2. DID & Domain Verification
 - Verify DID Document
