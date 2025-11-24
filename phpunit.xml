@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         cacheDirectory=".cache"
+         colors="true"
+         beStrictAboutOutputDuringTests="true"
+         displayDetailsOnAllIssues="true"
+>
+    <groups>
+        <exclude>
+            <group>default-disabled</group>
+        </exclude>
+    </groups>
+    <testsuites>
+        <testsuite name="Main">
+            <directory>tools/wp-plugin/tests</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>tools/wp-plugin/src</directory>
+        </include>
+    </source>
+    <php>
+        <env name="APP_ENV" value="testing" force="true"/>
+    </php>
+</phpunit>
