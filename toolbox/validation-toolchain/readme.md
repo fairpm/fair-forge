@@ -99,3 +99,21 @@ _(Relates to repo health: AI-generated code is less likely to be maintained unle
 - Append results to fair-forge-meta per spec
 
 
+### 7. Code Reference & Documentation Generator
+Per Milana on our Slack discussion, [phpDocumentor](https://phpdoc.org/) ([on GitHub](https://github.com/phpDocumentor/phpDocumentor)) is used by .org to generate code reference, but the tool could do more.
+
+> The most difficult and annoying part in writing docs is knowing what needs to be written, how, and where....
+> I'd love to have a tool that would read annotations from DocBlock (a comment) and do the following:
+> - Generates code reference (it's good, why not)
+> - Generates changelog
+> - Generates the structure for the Field guide
+> - Creates GH isssues for docs that needs to be written, by docs type (dev note, end-user, how-to, guide, etc). Each type has own issue template and the tool knows which template to use. These templates should already exist (to create the standard of documenting open-source software) but should be possible for extending or completely overwriting.
+> - Is easy to add to any project (not just WP) and can be up and running in 30 minutes.
+> - Uses some kind of config file for easier abstraction.
+> - Ideally, it scans through any language but for the start, PHP and JS would cover WordPress needs.
+> 
+> The idea is that every new code/feature needs to annotate for appropriate docs (this could be enforced with CI), and that annotation could be stripped off during packing distro process.
+
+This idea can be helpful for FAIR's own releases, but could also be added as a FAIR Forge tool. Integrating with Beacon would allow it to create changelogs and documentation for each release, auto-publishing it to Beacon as a means of providing a minimum level of documentation for all FAIR-formatted packages.
+
+
