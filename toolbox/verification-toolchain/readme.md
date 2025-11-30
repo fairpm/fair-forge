@@ -75,3 +75,14 @@ This toolchain consists of tools for verifying the various attestations about a 
 - Append results to fair-forge-meta per spec
 
 
+### 7. Reputation Checks
+FAIR's Trust Model has developer/maintainer reputation in view, beyond that of the publisher and of the package itself. In defining potential trust signals, it suggests,
+> #### For Authors & Publishers:
+> 1. Have they provided valid contact information?
+> 2. Do they have a verifiable identity?
+> 3. Do they have a known reputation within the FAIR ecosystem?
+> 4. Do they have an established reputation elsewhere online?
+> 5. Do they hold the copyright to the Package or a suitable license for its distribution?
+
+Validating contact information is contemplated in the intial toolchains for FAIR Forge, but extending these checks to the individual reputations of package maintainers can be considered as well. Verifiable identities can help with this, but building a tool that is able to assess a developer's "Karma" or reputation within the community would be helpful as a trust signal.
+
