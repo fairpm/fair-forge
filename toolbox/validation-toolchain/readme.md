@@ -89,13 +89,17 @@ _(Relates to repo health: AI-generated code is less likely to be maintained unle
 - No PHP errors or warnings in log
 - Flag `deprecation` notices
 - Flag `doing_it_wrong`
-- Slow db queries?
+- Slow db queries
+- Smoke Tests, _e.g._, [PluginTests.com](https://plugintests.com/)
 - Fuzz Testing:
   - [GitHub - nikic/PHP-Fuzzer: Experimental fuzzer for PHP libraries](https://github.com/nikic/PHP-Fuzzer)
   - [Phuzz Modular & Open-Source Coverage-Guided Web Application Fuzzer for PHP](https://github.com/gehaxelt/phuzz)
   - [WPGarlic: A proof-of-concept WordPress plugin fuzzer](https://github.com/kazet/wpgarlic)
 - Performance checks; _e.g._, [Code Profiler](https://wordpress.org/plugins/code-profiler/) / [Code Profiler](https://nintechnet.com/codeprofiler/)
-- Possible environment: [Katakate/k7](https://github.com/Katakate/k7) self-hosted infra for lightweight VM sandboxes to safely execute untrusted code
+- Possible environments:
+  - [Katakate/k7](https://github.com/Katakate/k7) self-hosted infra for lightweight VM sandboxes to safely execute untrusted code
+  - [Playground CLI | WordPress Playground](https://wordpress.github.io/wordpress-playground/developers/local-development/wp-playground-cli/)
+  - WP Playground, WASM; FAIR's self-hosted instance pending
 - Append results to fair-forge-meta per spec
 
 
