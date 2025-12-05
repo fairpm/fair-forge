@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+here=$(dirname "$0")
+source "$here/../lib/bash/prelude.bash"
+
+[[ -n "$*" ]] || die "usage: $0 <cmdline ...>"
+
+builder=$("$__HERE/make-builder")
+[[ -z ${KEEP_BUILDER:-} ]] && trap "rm -rf $builder" EXIT
+
+cd "$builder"
+"$@"

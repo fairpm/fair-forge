@@ -1,0 +1,11 @@
+#!/bin/bash
+
+. $(dirname $0)/prelude.bash
+cd $ORIG_PWD
+enforce_svn_root
+
+date=$1
+[[ -n $date ]] || die "Usage: $0 yyyy-mm-dd"
+
+RUN svn log --revision "{$date}:head" --verbose | perl -nE 'next unless m!^\s+[A-Z] /(.*?)/!; say $1 unless $seen{$1}++'
+

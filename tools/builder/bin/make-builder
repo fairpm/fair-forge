@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+# shellcheck disable=SC2086
+source "$(dirname $0)"/../lib/bash/prelude.bash
+
+builders=${FAIR_FORGE_BUILDERS_DIR:-$FAIR_FORGE/builders}
+mkdir -p "$builders"
+
+builder=${1:-$(mktemp -d $builders/builder.XXXXXXXXXX)}
+
+[[ $builder =~ ^/ ]] || builder=$builders/$builder
+
+$__HERE/init-builder $builder >/dev/null
+
+echo $builder

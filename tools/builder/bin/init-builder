@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+# shellcheck disable=SC2086
+source "$(dirname $0)"/../lib/bash/prelude.bash
+
+[[ -n "$*" ]] || die "usage: $0 <cmdline ...>"
+
+builder=$1
+shift
+
+cd $builder
+
+# TODO: make this an option --template=foo (I'm not doing option parsing in bash)
+template=${BUILDER_TEMPLATE:-default}
+
+# A template containing a hash, e.g. .#foo is assumed to be a nix expression
+if [[ $template =~ [#] ]]; then
+    nix flake init -t $template
+    exit 0
+fi
+
+[[ $template =~ ^/ ]] || template=$(realpath -s "$__HERE/../templates/$template")
+
+[[ -d $template ]] || die "No such directory: $template "
+
+[[ -f $template/_meta/install ]] || die "Template $template does not contain a _meta/install script"
+
+$template/_meta/install "$template" "$builder"
