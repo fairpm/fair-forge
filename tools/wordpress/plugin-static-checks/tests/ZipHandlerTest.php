@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace FairForge\Tools\WordPress\Packages\Plugins\StaticChecks\Tests;
+namespace FairForge\Tools\WordPress\PluginStaticChecks\Tests;
 
-use FairForge\Tools\WordPress\Packages\Plugins\StaticChecks\ZipHandler;
+use FairForge\Tools\WordPress\PluginStaticChecks\ZipHandler;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 

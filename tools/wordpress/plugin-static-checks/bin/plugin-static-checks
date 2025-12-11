@@ -9,7 +9,7 @@ declare(strict_types=1);
  * Scans a WordPress plugin ZIP file using PHPCS with WordPress coding standards.
  *
  * Usage:
- *   php bin/static-checks <url|path> [options]
+ *   php bin/plugin-static-checks <url|path> [options]
  *
  * Options:
  * --output=FILE           Save JSON output to specified file
@@ -23,9 +23,9 @@ declare(strict_types=1);
  * --help, -h              Show this help message
  *
  * Examples:
- *   php bin/static-checks https://downloads.wordpress.org/plugin/akismet.zip
- *   php bin/static-checks ./my-plugin.zip --output=results.json
- *   php bin/static-checks https://example.com/plugin.zip --standard=WordPress-Core
+ *   php bin/plugin-static-checks https://downloads.wordpress.org/plugin/akismet.zip
+ *   php bin/plugin-static-checks ./my-plugin.zip --output=results.json
+ *   php bin/plugin-static-checks https://example.com/plugin.zip --standard=WordPress-Core
  */
 
 // Find autoloader
@@ -50,7 +50,7 @@ if (!$autoloadFound) {
     exit(1);
 }
 
-use FairForge\Tools\WordPress\Packages\Plugins\StaticChecks\PluginScanner;
+use FairForge\Tools\WordPress\PluginStaticChecks\PluginScanner;
 
 /**
  * Parse command line arguments.

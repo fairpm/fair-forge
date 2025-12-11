@@ -1,5 +1,5 @@
 {
-    "name": "fair-forge/static-checks",
+    "name": "fair-forge/plugin-static-checks",
     "description": "WordPress plugin ZIP scanner using PHPCS with WordPress coding standards",
     "type": "library",
     "license": "MIT",
@@ -14,16 +14,16 @@
     },
     "autoload": {
         "psr-4": {
-            "FairForge\\Tools\\WordPress\\Packages\\Plugins\\StaticChecks\\": "src/"
+            "FairForge\\Tools\\WordPress\\PluginStaticChecks\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "FairForge\\Tools\\WordPress\\Packages\\Plugins\\StaticChecks\\Tests\\": "tests/"
+            "FairForge\\Tools\\WordPress\\PluginStaticChecks\\Tests\\": "tests/"
         }
     },
     "bin": [
-        "bin/static-checks"
+        "bin/plugin-static-checks"
     ],
     "config": {
         "allow-plugins": {

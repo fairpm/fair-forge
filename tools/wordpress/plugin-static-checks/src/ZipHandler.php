@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace FairForge\Tools\WordPress\Packages\Plugins\StaticChecks;
+namespace FairForge\Tools\WordPress\PluginStaticChecks;
 
 use PhpZip\Exception\ZipException;
 use PhpZip\ZipFile;

@@ -20,7 +20,7 @@ A PHP library and CLI tool for scanning WordPress plugin ZIP files using PHPCS w
 ## Installation
 
 ```bash
-cd fair-forge/tools/wordpress/packages/plugins/static-checks
+cd fair-forge/tools/wordpress/plugin-static-checks
 composer install
 ```
 
@@ -30,13 +30,13 @@ composer install
 
 ```bash
 # Scan a plugin from WordPress.org
-php bin/static-checks https://downloads.wordpress.org/plugin/akismet.zip
+php bin/plugin-static-checks https://downloads.wordpress.org/plugin/akismet.zip
 
 # Scan a local ZIP file
-php bin/static-checks ./my-plugin.zip
+php bin/plugin-static-checks ./my-plugin.zip
 
 # Save results to a file
-php bin/static-checks https://example.com/plugin.zip --output=results.json
+php bin/plugin-static-checks https://example.com/plugin.zip --output=results.json
 ```
 
 ### Options
@@ -63,16 +63,16 @@ php bin/static-checks https://example.com/plugin.zip --output=results.json
 
 ```bash
 # Scan with only errors (no warnings)
-php bin/static-checks plugin.zip --no-warnings
+php bin/plugin-static-checks plugin.zip --no-warnings
 
 # Use WordPress-Core standard
-php bin/static-checks plugin.zip --standard=WordPress-Core
+php bin/plugin-static-checks plugin.zip --standard=WordPress-Core
 
 # Scan PHP and JavaScript files
-php bin/static-checks plugin.zip --extensions=php,js
+php bin/plugin-static-checks plugin.zip --extensions=php,js
 
 # Quiet mode - only JSON output, save to file
-php bin/static-checks plugin.zip --quiet --output=results.json
+php bin/plugin-static-checks plugin.zip --quiet --output=results.json
 ```
 
 ### Exit Codes
@@ -90,7 +90,7 @@ php bin/static-checks plugin.zip --quiet --output=results.json
 
 require_once 'vendor/autoload.php';
 
-use FairForge\Tools\WordPress\Packages\Plugins\StaticChecks\PluginScanner;
+use FairForge\Tools\WordPress\PluginStaticChecks\PluginScanner;
 
 $scanner = new PluginScanner();
 
