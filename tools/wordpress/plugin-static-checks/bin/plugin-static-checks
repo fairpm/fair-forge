@@ -1,0 +1,251 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+/**
+ * WordPress Plugin PHPCS Scanner CLI
+ *
+ * Scans a WordPress plugin ZIP file using PHPCS with WordPress coding standards.
+ *
+ * Usage:
+ *   php bin/plugin-static-checks <url|path> [options]
+ *
+ * Options:
+ * --output=FILE           Save JSON output to specified file
+ * --standard=NAME         PHPCS standard to use (default: WordPress)
+ *                         Options: WordPress, WordPress-Core, WordPress-Extra, WordPress-Docs
+ * --no-warnings           Exclude warnings from output (show only errors)
+ * --severity=N            Minimum severity level 1-10 (default: 1)
+ * --extensions=LIST       Comma-separated list of file extensions to scan (default: php)
+ * --insecure, -k          Skip SSL certificate verification (use for self-signed certs)
+ * --quiet, -q             Suppress progress messages (output only JSON)
+ * --help, -h              Show this help message
+ *
+ * Examples:
+ *   php bin/plugin-static-checks https://downloads.wordpress.org/plugin/akismet.zip
+ *   php bin/plugin-static-checks ./my-plugin.zip --output=results.json
+ *   php bin/plugin-static-checks https://example.com/plugin.zip --standard=WordPress-Core
+ */
+
+// Find autoloader
+$autoloadPaths = [
+    __DIR__ . '/../vendor/autoload.php',
+    __DIR__ . '/../../vendor/autoload.php',
+    __DIR__ . '/../../../autoload.php',
+];
+
+$autoloadFound = false;
+foreach ($autoloadPaths as $autoloadPath) {
+    if (file_exists($autoloadPath)) {
+        require_once $autoloadPath;
+        $autoloadFound = true;
+        break;
+    }
+}
+
+if (!$autoloadFound) {
+    fwrite(STDERR, "Error: Could not find Composer autoloader.\n");
+    fwrite(STDERR, "Please run 'composer install' first.\n");
+    exit(1);
+}
+
+use FairForge\Tools\WordPress\PluginStaticChecks\PluginScanner;
+
+/**
+ * Parse command line arguments.
+ *
+ * @param array<int, string> $argv
+ * @return array{target: string|null, options: array<string, mixed>}
+ */
+function parseArguments(array $argv): array
+{
+    $target = null;
+    $options = [
+        'output' => null,
+        'standard' => 'WordPress',
+        'warnings' => true,
+        'severity' => 1,
+        'extensions' => ['php'],
+        'quiet' => false,
+        'help' => false,
+        'insecure' => false,
+    ];
+
+    // Skip script name
+    array_shift($argv);
+
+    foreach ($argv as $arg) {
+        if ($arg === '--help' || $arg === '-h') {
+            $options['help'] = true;
+        } elseif ($arg === '--quiet' || $arg === '-q') {
+            $options['quiet'] = true;
+        } elseif ($arg === '--no-warnings') {
+            $options['warnings'] = false;
+        } elseif ($arg === '--insecure' || $arg === '-k') {
+            $options['insecure'] = true;
+        } elseif (str_starts_with($arg, '--output=')) {
+            $options['output'] = substr($arg, 9);
+        } elseif (str_starts_with($arg, '--standard=')) {
+            $options['standard'] = substr($arg, 11);
+        } elseif (str_starts_with($arg, '--severity=')) {
+            $options['severity'] = (int) substr($arg, 11);
+        } elseif (str_starts_with($arg, '--extensions=')) {
+            $options['extensions'] = explode(',', substr($arg, 13));
+        } elseif (!str_starts_with($arg, '-') && $target === null) {
+            $target = $arg;
+        }
+    }
+
+    return ['target' => $target, 'options' => $options];
+}
+
+/**
+ * Print help message.
+ */
+function printHelp(): void
+{
+    echo <<<'HELP'
+WordPress Plugin PHPCS Scanner
+
+USAGE:
+    php bin/static-checks <url|path> [options]
+
+ARGUMENTS:
+    <url|path>              URL to a plugin ZIP file or path to a local ZIP file
+
+OPTIONS:
+    --output=FILE           Save JSON output to specified file
+    --standard=NAME         PHPCS standard to use (default: WordPress)
+                            Options: WordPress, WordPress-Core, WordPress-Extra, WordPress-Docs
+    --no-warnings           Exclude warnings from output (show only errors)
+    --severity=N            Minimum severity level 1-10 (default: 1)
+    --extensions=LIST       Comma-separated list of file extensions to scan (default: php)
+    --insecure, -k          Skip SSL certificate verification (use for self-signed certs)
+    --quiet, -q             Suppress progress messages (output only JSON)
+    --help, -h              Show this help message
+
+EXAMPLES:
+    # Scan a plugin from WordPress.org
+    php bin/static-checks https://downloads.wordpress.org/plugin/akismet.zip
+
+    # Scan a local ZIP file and save results
+    php bin/static-checks ./my-plugin.zip --output=results.json
+
+    # Scan with only errors (no warnings) using WordPress-Core standard
+    php bin/static-checks plugin.zip --standard=WordPress-Core --no-warnings
+
+    # Scan PHP and JavaScript files
+    php bin/static-checks plugin.zip --extensions=php,js
+
+PHPCS STANDARDS:
+    WordPress        - Complete WordPress coding standards (default)
+    WordPress-Core   - Core WordPress coding standards only
+    WordPress-Extra  - Additional WordPress coding standards
+    WordPress-Docs   - Documentation standards
+
+EXIT CODES:
+    0 - Scan completed successfully with no errors
+    1 - Scan completed but found errors
+    2 - Scan failed (invalid input, download error, etc.)
+
+HELP;
+}
+
+/**
+ * Print a message to stderr if not in quiet mode.
+ */
+function info(string $message, bool $quiet): void
+{
+    if (!$quiet) {
+        fwrite(STDERR, $message . "\n");
+    }
+}
+
+// Main execution
+$parsed = parseArguments($argv);
+$options = $parsed['options'];
+$target = $parsed['target'];
+
+if ($options['help']) {
+    printHelp();
+    exit(0);
+}
+
+if ($target === null) {
+    fwrite(STDERR, "Error: No input URL or file path provided.\n\n");
+    fwrite(STDERR, "Usage: php bin/static-checks <url|path> [options]\n");
+    fwrite(STDERR, "Run 'php bin/static-checks --help' for more information.\n");
+    exit(2);
+}
+
+// Configure scanner
+$scanner = new PluginScanner();
+$scanner->setStandard($options['standard']);
+$scanner->setExtensions($options['extensions']);
+$scanner->setIncludeWarnings($options['warnings']);
+$scanner->setSeverity($options['severity']);
+$scanner->setSslVerify(!$options['insecure']);
+
+if ($options['insecure']) {
+    info("WARNING: SSL verification disabled", $options['quiet']);
+}
+
+info("WordPress Plugin PHPCS Scanner", $options['quiet']);
+info("==============================", $options['quiet']);
+info("Standard: {$options['standard']}", $options['quiet']);
+
+try {
+    // Determine if target is URL or local file
+    if (filter_var($target, FILTER_VALIDATE_URL)) {
+        info("Downloading: {$target}", $options['quiet']);
+        $result = $scanner->scanFromUrl($target);
+    } elseif (file_exists($target)) {
+        info("Scanning local file: {$target}", $options['quiet']);
+        $result = $scanner->scanFromZipFile($target);
+    } else {
+        fwrite(STDERR, "Error: '{$target}' is not a valid URL or existing file.\n");
+        exit(2);
+    }
+
+    info("Scan completed!", $options['quiet']);
+    info("", $options['quiet']);
+
+    // Output results
+    $json = $result->toJson();
+
+    if ($options['output']) {
+        if ($result->saveToFile($options['output'])) {
+            info("Results saved to: {$options['output']}", $options['quiet']);
+        } else {
+            fwrite(STDERR, "Error: Failed to save results to {$options['output']}\n");
+            exit(2);
+        }
+    }
+
+    // Always output JSON to stdout (unless quiet and output file specified)
+    if (!$options['quiet'] || !$options['output']) {
+        echo $json . "\n";
+    }
+
+    // Print summary if not quiet
+    if (!$options['quiet']) {
+        $summary = $result->getSummary();
+        fwrite(STDERR, "\n");
+        fwrite(STDERR, "Summary:\n");
+        fwrite(STDERR, "  Files scanned: {$summary['files_scanned']}\n");
+        fwrite(STDERR, "  Errors: {$summary['errors']}\n");
+        fwrite(STDERR, "  Warnings: {$summary['warnings']}\n");
+        fwrite(STDERR, "  Fixable: {$summary['fixable']}\n");
+    }
+
+    // Exit with appropriate code
+    exit($result->hasErrors() ? 1 : 0);
+
+} catch (Throwable $e) {
+    fwrite(STDERR, "Error: " . $e->getMessage() . "\n");
+    if (!$options['quiet']) {
+        fwrite(STDERR, "Stack trace:\n" . $e->getTraceAsString() . "\n");
+    }
+    exit(2);
+}
