@@ -1,4 +1,6 @@
 # FAIR Forge Toolbox Documentation
+<!-- TOC START -->
+<!-- TOC END -->
 
 This Document:
 | Purpose          | Updated    | Status |
@@ -52,4 +54,4 @@ Some steps in the process of validating Packages, evaluating them for federation
 
 
 ## License
-**CC BY 4.0** https://creativecommons.org/licenses/by/4.0/
+This page is **CC BY 4.0** https://creativecommons.org/licenses/by/4.0/
