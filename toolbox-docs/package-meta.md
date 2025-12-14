@@ -74,6 +74,7 @@ The JSON-formatted **Package Metadata document** is to be cryptographically sign
 > | `revenue_model` | Revenue Model Doc  |
 
 >> ## Revenue Model Document
+>> Extends the FAIR Protocol to support commercial plugins. Placeholder; content TBD.
 >> | Key           | Value               |
 >> | ------------- | ------------------- |
 >> | `model`       | string              |
