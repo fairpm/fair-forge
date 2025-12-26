@@ -5,32 +5,11 @@ on:
     branches: [ "main" ]
     types: [ opened, reopened, synchronize ] # Triggers
 
-
-
   # run manually from Actions tab
   workflow_dispatch:
-  
-jobs:
-  set-status:
-    runs-on: ubuntu-latest
-    permissions:
-      statuses: write
-    steps:
-      - name: Set Review Status
-        with:
-          state: 'review'
-          context: 'Initial Check'
-
-name: Set PR Status to Review
-
-on:
-  pull_request:
-    types:
-      - labeled
 
 jobs:
   add-to-project:
-    name: Add PR for Review
     runs-on: ubuntu-latest
     steps:
       - name: Set Review Status
