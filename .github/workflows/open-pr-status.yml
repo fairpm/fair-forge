@@ -1,0 +1,47 @@
+name: Set Open PR Status
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    types: [ opened, reopened, synchronize ] # Triggers
+
+
+
+  # run manually from Actions tab
+  workflow_dispatch:
+  
+jobs:
+  set-status:
+    runs-on: ubuntu-latest
+    permissions:
+      statuses: write
+    steps:
+      - name: Set Review Status
+        with:
+          state: 'review'
+          context: 'Initial Check'
+
+name: Set PR Status to Review
+
+on:
+  pull_request:
+    types:
+      - labeled
+
+jobs:
+  add-to-project:
+    name: Add PR for Review
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set Review Status
+        with:
+          state: 'review'
+          context: 'Initial Check'
+          description: 'Setting Status to Review...'
+      - uses: actions/add-to-project@RELEASE_VERSION
+        with:
+          project-url: https://github.com/orgs/fairpm/projects/15
+#          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
+#          labeled: needs-review
+#          label-operator: AND
+
