@@ -1,4 +1,11 @@
 # Legacy Build Toolchain
+<!-- TOC START -->
+<!-- TOC END -->
+
+This Document:
+| Purpose          | Updated    | Status |
+| ---------------- | ---------- | ------ |
+| Project Overview | 2026-02-02 | Draft  |
 
 This toolchain consists of tools for taking a WordPress package (plugin or theme) from the legacy Subversion repository and (re)building it as a package formatted according to the FAIR protocol. The result will be a _true copy_ of the original package with properly formed metadata. Since the legacy WordPress respository requirement omits data required by the FAIR Protocol, some may be reasonably inferred or omitted if necessary.
 
@@ -55,3 +62,6 @@ Received packages are presumed to have been verified by WordPress.org using [Plu
   - Generate checksums
   - Crypto sign package & meta documents
   - Append json results to build-meta
+
+## License
+This page is **CC BY 4.0** https://creativecommons.org/licenses/by/4.0/
