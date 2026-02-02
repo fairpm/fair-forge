@@ -1,4 +1,11 @@
 # Third-Party Verification Toolchain
+<!-- TOC START -->
+<!-- TOC END -->
+
+This Document:
+| Purpose          | Updated    | Status |
+| ---------------- | ---------- | ------ |
+| Project Overview | 2026-02-02 | Draft  |
 
 External, or third-party verification tools are run to verify specific attestations against external sourcees, as well as to add additional openly-available verifications about the package and the metadata it provides. This toolchain consists of tools for verifying the attestations about a package. Given a package with a FAIR-formatted metadata document, the toolchain will generate metadata for use in assigning a trust score, including evaluation of whether a package (or release) should be accepted for federation and aggregation by FAIR. The same tools are run on the package, regardless of its origin.
 
@@ -69,3 +76,5 @@ FAIR's Trust Model has developer/maintainer reputation in view, beyond that of t
 
 Validating contact information is contemplated in the intial toolchains for FAIR Forge, but extending these checks to the individual reputations of package maintainers can be considered as well. Verifiable identities can help with this, but building a tool that is able to assess a developer's "Karma" or reputation within the community would be helpful as a trust signal.
 
+## License
+This page is **CC BY 4.0** https://creativecommons.org/licenses/by/4.0/
