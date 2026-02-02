@@ -1,9 +1,9 @@
-# Validation Toolchain
+# Intrinsic Verification Toolchain
 
-This toolchain consists of tools for validating the various attributes of a package. Given a package with FAIR-formatted meta, the toolchain will generate metadata for use in assigning a trust score, including evaluation of whether a package (or release) should be accepted for FAIR federation and aggregation. The same tools are run on the package, regardless of its origin. Validation tools are run internally on the package itself, largely but not exclusively focused on security, compliance, and coding practices.
+This toolchain consists of tools for verifying the various attributes of a package. Given a package with FAIR-formatted meta, the toolchain will generate metadata for use in assigning a trust score, including evaluation of whether a package (or release) should be accepted for FAIR federation and aggregation. The same tools are run on the package, regardless of its origin. Intrinsic verification tools are run internally on the package itself, largely but not exclusively focused on security, compliance, and coding practices.
 
 
-## Validation Tools
+## Intrinsic Verification Tools
 
 
 ### 1. Package & File Integrity
@@ -27,7 +27,7 @@ This toolchain consists of tools for validating the various attributes of a pack
   - Publisher Contact
   - Support contact
   - Security contact
-- SBOM Validation
+- SBOM Verification
   - [ScanCode](https://github.com/aboutcode-org/scancode-toolkit) detects licenses, copyrights, dependencies to discover and inventory open source and third-party packages used.
   - [OSS Review Toolkit / ORT](https://github.com/oss-review-toolkit/ort) suite of tools to automate software compliance checks; [Related Tools | OSS Review Toolkit](https://oss-review-toolkit.org/ort/docs/related-tools) (Bash script, GitHub action, GitLab pipeline, desktop app)
 - Append results to fair-forge-meta per spec
