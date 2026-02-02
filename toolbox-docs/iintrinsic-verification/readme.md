@@ -1,5 +1,13 @@
 # Intrinsic Verification Toolchain
 
+<!-- TOC START -->
+<!-- TOC END -->
+
+This Document:
+| Purpose          | Updated    | Status |
+| ---------------- | ---------- | ------ |
+| Project Overview | 2026-02-02 | Draft  |
+
 This toolchain consists of tools for verifying the various attributes of a package. Given a package with FAIR-formatted meta, the toolchain will generate metadata for use in assigning a trust score, including evaluation of whether a package (or release) should be accepted for FAIR federation and aggregation. The same tools are run on the package, regardless of its origin. Intrinsic verification tools are run internally on the package itself, largely but not exclusively focused on security, compliance, and coding practices.
 
 ## Intrinsic Verification Tools
@@ -121,3 +129,5 @@ Per Milana on our Slack discussion, [phpDocumentor](https://phpdoc.org/) ([on Gi
 
 This can be helpful for FAIR's own releases, but could also be added as a FAIR Forge tool. Integrating with Beacon would allow it to create changelogs and documentation for each release, auto-publishing it to Beacon as a means of providing a minimum level of documentation for all FAIR-formatted packages.
 
+## License
+This page is **CC BY 4.0** https://creativecommons.org/licenses/by/4.0/
