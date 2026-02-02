@@ -1,4 +1,11 @@
 # FAIR Forge
+<!-- TOC START -->
+<!-- TOC END -->
+
+This Document:
+| Purpose          | Updated    | Status |
+| ---------------- | ---------- | ------ |
+| Project Overview | 2026-02-02 | Draft  |
 
 Immediate goals:
 1. convert legacy WordPress packages to FAIR-formatted packages & package-meta; 
@@ -68,3 +75,5 @@ Some vague notes below.  Things will take a more defined shape as we build out t
 * "register a PLC DID for the current package"
 * "run the default configured release process" (e.g. bump version, CI checks, SBOM, signing, upload)
 
+## License
+This page is **CC BY 4.0** https://creativecommons.org/licenses/by/4.0/
