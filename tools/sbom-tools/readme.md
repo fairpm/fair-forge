@@ -142,13 +142,13 @@ A robust Bash utility that scans directories for Software Bill of Materials (SBO
 #### Options & Flags
 
 | Flag | Long Flag      | Description |
-| —--- | —------------- | ---------—- |
-| `-v` | `—verbose`     | **Detailed Mode:** Lists the specific names of added, removed, or changed packages. |
-| `-j` | `—json`        | **JSON Output:** Outputs raw JSON for piping into other tools. Suppresses all log messages. |
-| `-n` | `—no-diff`     | **Discovery Only:** Finds potential SBOMs but skips the comparison step. |
-| `-d` | `—depth INT`   | **Search Depth:** How deep to search for files (Default: 6). |
-| `-f` | `—filter TYPE` | **Filter:** Limit analysis to specific package types (e.g., `npm`, `python`, `binary`). |
-| `-h` | `—help`        | **Help:** Displays usage information. |
+| ---- | -------------- | ----------- |
+| `-v` | `—verbose`     | Lists the specific names of added, removed, or changed packages. |
+| `-j` | `—json`        | Outputs raw JSON for piping into other tools, suppressing all log messages. |
+| `-n` | `—no-diff`     | Finds potential SBOMs but skips the comparison step. |
+| `-d` | `—depth INT`   | How deep to search for files (Default: 6). |
+| `-f` | `—filter TYPE` | Limit analysis to specific package types (_e.g._, `npm`, `python`, `binary`). |
+| `-h` | `—help`        | Displays usage information. |
 
 
 #### 🔍 Examples
