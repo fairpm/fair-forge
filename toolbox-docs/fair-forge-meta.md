@@ -1,12 +1,20 @@
 # FAIR Forge Meta
 
-This JSON metadata document is _separate_ from the publisher-provided (signed) **Package Meta**, and contains the meta collected by FAIR for use in evaluating the package to assign trust scores, approve for federation, apply labels, and catalogue the entry. 
+This Document:
+| Purpose      | Updated    | Status |
+| ------------ | ---------- | ------ |
+| Project Spec | 2025-12-14 | Draft  |
+
+Forge will create a Metadata Document in JSON format for use in reporting results from each tool in the toolchain. This **Forge Metadata** document is _separate_ from the publisher-provided (signed) **Package Metadata**, and contains the meta collected by FAIR for use in evaluating and approving the package for federation, to assign trust scores, apply labels, and catalogue the entry. Some data within the document will be restricted to FAIR's use, and must be redacted for reporting externally.
+
+**Important:** this specification is in draft form and is _expected_ to evolve through the process of developing Forge tooling.
+
 
 | Key       | Req'd | Data Source                | Value, FAIR Format          |
 | --------- | ----- | -------------------------- | --------------------------- |
 | `id`      | yes   | package DID                | DID (cache DID document     |
 | `package` | yes   | plugin slug                | package-forge-meta document |
-| `release` | yes   | version from plugin header | release-forge-meta document  |
+| `release` | yes   | version from plugin header | release-forge-meta document |
 
 
 ## Package Forge Meta Document
@@ -79,4 +87,7 @@ This JSON metadata document contains meta gleaned from runtime testing to ensure
 | `performance`      | no    | runtime monitoring tests   | results as json list |
 
 
+## License
+
+This page is **CC BY 4.0** https://creativecommons.org/licenses/by/4.0/
 

@@ -1,4 +1,11 @@
 # Package Metadata Mapping
+<!-- TOC START -->
+<!-- TOC END -->
+
+This Document:
+| Purpose          | Updated    | Status |
+| ---------------- | ---------- | ------ |
+| Project Overview | 2026-02-02 | Draft  |
 
 ## .org Requirements & Sources
 ### [Plugin Readmes](https://developer.wordpress.org/plugins/wordpress-org/how-your-readme-txt-works/)
@@ -176,3 +183,5 @@ All values are optional, but at least one must exist. Refer to [FAIR artifacts s
 
 *Add to [FAIR Forge Meta Document](toolbox/fair-forge-meta.md) as `fair_forge_meta_labels`.
 
+## License
+This page is **CC BY 4.0** https://creativecommons.org/licenses/by/4.0/

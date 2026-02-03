@@ -1,5 +1,13 @@
 # Human Review
 
+<!-- TOC START -->
+<!-- TOC END -->
+
+This Document:
+| Purpose          | Updated    | Status |
+| ---------------- | ---------- | ------ |
+| Project Overview | 2026-02-02 | Draft  |
+
 Certain trust signals will require human review, either to gather data or to evaluate it once it has been gathered electronically. The following overview provides some specific trust signals to be gathered and evaluated, though some will be for future enhancements.
 
 ## Reference Material for Human Reviewers
@@ -56,3 +64,5 @@ At some point we may want to link respositories or packages with verifiably iden
 - OpenSSF: [Trusted Publishers for All Package Repositories](https://repos.openssf.org/trusted-publishers-for-all-package-repositories)
 
 
+## License
+This page is **CC BY 4.0** https://creativecommons.org/licenses/by/4.0/

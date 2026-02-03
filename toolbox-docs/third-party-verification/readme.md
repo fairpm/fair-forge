@@ -1,38 +1,30 @@
-# Verification Toolchain
+# Third-Party Verification Toolchain
+<!-- TOC START -->
+<!-- TOC END -->
 
-This toolchain consists of tools for verifying the various attestations about a package. Given a package with FAIR-formatted meta, the toolchain will generate metadata for use in assigning a trust score, including evaluation of whether a package (or release) should be accepted for FAIR federation and aggregation. The same tools are run on the package, regardless of its origin. Verification tools are run to verify attestations against external sourcees.
+This Document:
+| Purpose          | Updated    | Status |
+| ---------------- | ---------- | ------ |
+| Project Overview | 2026-02-02 | Draft  |
+
+External, or third-party verification tools are run to verify specific attestations against external sourcees, as well as to add additional openly-available verifications about the package and the metadata it provides. This toolchain consists of tools for verifying the attestations about a package. Given a package with a FAIR-formatted metadata document, the toolchain will generate metadata for use in assigning a trust score, including evaluation of whether a package (or release) should be accepted for federation and aggregation by FAIR. The same tools are run on the package, regardless of its origin.
 
 
-## Verification Tools
+## External Verification Tools
 
-
-### 1. Package Integrity
-- Confirm checksum accuracy
-- Confirm package & metadata signature
-- Unzip or unpack archive file
-- Check for anything unpacked as world-writeable (octal --6 or --7)
-- Check for presence of required & recommended files:
-  - `readme.txt`
-  - `readme.md`
-  - `security.md`
-  - `contributing.md`
-  - `code-of-conduct.md`
-  - license file (e.g., GPL)
-- Append results to fair-forge-meta per spec
-
-### 2. DID & Domain Verification
+### 1. DID, Domain, & Email Verification
 - Verify DID Document
-- Verify DNS for domain alias, if provided
+- Verify DNS record and `.well-known` endpoint for domain alias, if provided
 - If MX record exists, verify DNS includes SPF, DMARC, DKIM
 - Check domain reputation (e.g., [Spamhaus](https://www.spamhaus.org/domain-reputation/), [Cisco Talos](https://www.talosintelligence.com/reputation_center), [APIVoid](https://www.apivoid.com/api/domain-reputation/), _etc._)
 - RBL check for domain
-- Append results to fair-forge-meta per spec
+- Via API, verify deliverability of provided email addresses (support, security, _etc._) & confirm addresses are not disposable addresses.
 
 
-### 3. Provenance & Attestation Checks
+### 2. Provenance & Attestation Checks
 - Check for VDP
 - CRA Compliance TBD
-- License compatibility
+- License compatibility (also see SPDX SBOM)
   - [Open Definition Licenses API](https://opendefinition.org/licenses/api/)
   - [OSI Approved License API](https://opensource.org/blog/introducing-the-new-api-for-osi-approved-licenses)
   - Verify [GPL compatibility](https://www.gnu.org/licenses/license-list.html) (FSF List)
@@ -41,10 +33,9 @@ This toolchain consists of tools for verifying the various attestations about a 
   - Verify no disposable email addresses; roll our own or use APIs such as [Email Hippo](https://tools.emailhippo.com/Apps/Disposable_Email_Address_Detector) or [DeBounce](https://debounce.io/free-disposable-check-api/)
   - Verify URLS provided are live and contain the required contact information
 - [WordPress Plugin Attestation](https://github.com/johnbillion/action-wordpress-plugin-attestation) Github action by John Blackbourn
-- Append results to fair-forge-meta per spec
 
 
-### 4. CVE Checks
+### 3. CVE Checks
 - Check published CVE lists for package using available APIs
   - Patchstack API
   - [Snyk Vulnerability Database](https://security.snyk.io/)
@@ -54,10 +45,9 @@ This toolchain consists of tools for verifying the various attestations about a 
   - [Prototype CVE Labeller](https://github.com/fairpm/cve-labeller)
   - [WP-CLI Vulnerability Scanner (10Up)](https://github.com/10up/wpcli-vulnerability-scanner) (Supports [WPScan](https://wpscan.com/)/[WP Vuln DB](http://wpvulndb.com/), [Patchstack](https://patchstack.com/), [WordFence Intelligence](https://www.wordfence.com/threat-intel/)
 - Check time from exposure to patch for past CVEs
-- Append results to fair-forge-meta per spec
 
 
-### 5. Repo Profiler
+### 4. Repo Profiler
 - 2FA enabled/required
 - VDP listed
 - Uses dependabot & plugin check actions
@@ -69,13 +59,13 @@ This toolchain consists of tools for verifying the various attestations about a 
 - Append results to fair-forge-meta per spec
 
 
-### 6. Label Application
+### 5. Label Application
 - Apply labels inferred from package-meta & fair-forge-meta
 - Apply subscribed third-party labels for the package
 - Append results to fair-forge-meta per spec
 
 
-### 7. Reputation Checks
+### 6. Developer & Publisher Reputation Checks
 FAIR's Trust Model has developer/maintainer reputation in view, beyond that of the publisher and of the package itself. In defining potential trust signals, it suggests,
 > #### For Authors & Publishers:
 > 1. Have they provided valid contact information?
@@ -86,3 +76,5 @@ FAIR's Trust Model has developer/maintainer reputation in view, beyond that of t
 
 Validating contact information is contemplated in the intial toolchains for FAIR Forge, but extending these checks to the individual reputations of package maintainers can be considered as well. Verifiable identities can help with this, but building a tool that is able to assess a developer's "Karma" or reputation within the community would be helpful as a trust signal.
 
+## License
+This page is **CC BY 4.0** https://creativecommons.org/licenses/by/4.0/
