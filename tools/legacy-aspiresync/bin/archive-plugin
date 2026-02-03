@@ -1,0 +1,94 @@
+#!/bin/bash
+
+# shellcheck disable=SC2046
+. $(dirname "$0")/prelude.bash
+
+OUTPUT_DIR=$ARCHIVE_DIR/plugins/revisions
+mkdir -p "$OUTPUT_DIR"
+
+# These have so many redundant files (usually from recursively nested tags) that they're effectively zip bombs
+bombs='all-in-one-contact-buttons-wpshare247|biblesupersearch'
+
+# These produce errors when svn attempts to update them
+corrupt='a2-optimized-wp|better-links|countdown-timer|facebook-album-sync|font-awesome-the-easy-way|up-wp-cart'
+
+# combined deny-list
+DENYLIST="^($bombs|$corrupt)\$"
+
+####
+
+function main() {
+  local slug=$1
+  local tag=$2
+  local rev=${3:-HEAD}
+
+  echo ""
+  echo "PROCESSING: $slug [tag=$tag rev=$rev]"
+
+  if ! [[ $slug =~ ^[-A-Za-z0-9]+$ ]]; then
+    die "malformed slug skipped: $slug"
+    return
+  fi
+
+  if [[ $slug =~ $DENYLIST ]]; then
+    die "slug skipped due to matching explicit deny pattern: $slug"
+    return
+  fi
+
+  enter_tmpdir
+
+  svn co --depth=empty "$PLUGINS_REMOTE/$slug"
+  [[ $rev = 'HEAD' ]] && rev=$(get_revision "$slug")
+  local tar=$OUTPUT_DIR/$rev/$rev.$slug.$tag.tar.zst
+
+  if [[ -f $tar ]] && [[ -z "${FORCE:-}" ]]; then
+    echo "archive exists for $slug [tag=$tag rev=$rev file=$tar]"
+    exit 0
+  fi
+
+  cd "$slug"
+
+  svn update --set-depth=immediates --revision "$rev" tags
+
+  if [[ $tag = 'trunk' ]]; then
+      svn update --set-depth=infinity --revision "$rev" trunk
+  else
+      [[ -d tags/$tag ]] || die "Could not find tag: $slug/tags/$tag"
+      svn update --set-depth=infinity --revision "$rev" "tags/$tag"
+  fi
+
+  svn update --set-depth=infinity --revision "$rev" assets
+
+  rm -rf .svn
+  cd ..
+
+  mkdir -p $(dirname "$tar")
+  tar cf - "./$slug" | zstd --progress > "$tar.tmp"
+  mv "$tar.tmp" "$tar"
+
+  echo "ARCHIVED: $slug [tag=$tag rev=$rev file=$tar]"
+}
+
+function enter_tmpdir() {
+  local tmpdir
+  tmpdir=$(mktemp -d "$TMPDIR/svn.XXXXXXXX")
+  # shellcheck disable=SC2064
+  trap "rm -rf $tmpdir" EXIT
+  cd "$tmpdir" || die "could not set pwd to $tmpdir"
+}
+
+function get_revision() {
+  local dir=$1
+  local rev
+  rev=$(svn info -r HEAD --show-item last-changed-revision "$dir")
+
+  if [[ -z $rev ]]; then
+    die "fatal could not retrieve revision for $dir"
+  fi
+  echo "$rev"
+}
+
+################
+
+main "$@"
+

@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+template=$1
+dest=$2
+
+[[ -f $template/justfile ]] && cp "$template/justfile" "$dest" || true
+
+mkdir -p "$dest/in"
+mkdir -p "$dest/out"
+
+

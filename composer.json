@@ -1,0 +1,38 @@
+{
+    "name": "fairpm/fair-forge",
+    "authors": [
+        {
+            "name": "Chuck Adams",
+            "email": "chaz@chaz.works"
+        }
+    ],
+    "require": {
+        "thecodingmachine/safe": "^3.3",
+        "ext-intl": "*",
+        "ext-mbstring": "*",
+        "symfony/var-dumper": "^7.3",
+        "ext-dom": "*",
+        "ext-libxml": "*",
+        "league/commonmark": "^2.7",
+        "ezyang/htmlpurifier": "^4.19",
+        "ext-ds": "*",
+        "league/uri-polyfill": "^7.6",
+        "league/uri-components": "^7.6"
+    },
+    "require-dev": {
+        "roave/security-advisories": "dev-latest",
+        "phpunit/phpunit": "^12.4",
+        "codeception/verify": "^3.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "FAIR\\Forge\\": "src",
+            "FAIR\\Forge\\Tools\\WpPlugin\\": "tools/wp-plugin/src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\FAIR\\Forge\\Tools\\WpPlugin\\": "tools/wp-plugin/tests/"
+        }
+    }
+}

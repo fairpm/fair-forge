@@ -1,0 +1,3 @@
+
+@builder-env:
+    echo "FAIR_FORGE=$FAIR_FORGE"

@@ -1,0 +1,15 @@
+# ignore all dotfiles and dotdirs by default, with exceptions below
+.*
+!.gitignore
+!.editorconfig
+
+builders/
+node_modules/
+tmp/
+vendor/
+
+*.log
+*.tmp
+
+# default output file for 'nix build'
+result
