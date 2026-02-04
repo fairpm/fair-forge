@@ -21,7 +21,7 @@ In Unix/Linux systems, octal file permissions are numerical representations of f
 
 ## 2. Sentinel File Stats
 
-The file stats script gathers a quick statistical overview of what's in a directory. After scanning, it will report the numbber of files, number of lines, and file size for each file type, such as `.php`, `.js`, image types, and project documentation (`.txt` or `.md`).
+The file stats script gathers a quick statistical overview of what's in a directory. After scanning, it will report the number of files, number of lines, and file size for each file type, such as `.php`, `.js`, image types, and project documentation (`.txt` or `.md`).
 
  While scanning, the script will specifically check for indicators of common external sources for updates, such as `.gitignore` file. In additon to Git, Composer, Node.js, and PyPI sources are flagged. These may not be important, but may indicate either that the package is installing software from external sources or that the package wasn't cleaned up before being distributed.
 
