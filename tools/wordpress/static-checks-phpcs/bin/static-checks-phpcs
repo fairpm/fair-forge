@@ -4,12 +4,12 @@
 declare(strict_types=1);
 
 /**
- * WordPress Plugin PHPCS Scanner CLI
+ * PHPCS Static Checks CLI
  *
- * Scans a WordPress plugin ZIP file using PHPCS with WordPress coding standards.
+ * Scans a ZIP file using PHPCS with WordPress coding standards.
  *
  * Usage:
- *   php bin/plugin-static-checks <url|path> [options]
+ *   php bin/static-checks-phpcs <url|path> [options]
  *
  * Options:
  * --output=FILE           Save JSON output to specified file
@@ -23,9 +23,9 @@ declare(strict_types=1);
  * --help, -h              Show this help message
  *
  * Examples:
- *   php bin/plugin-static-checks https://downloads.wordpress.org/plugin/akismet.zip
- *   php bin/plugin-static-checks ./my-plugin.zip --output=results.json
- *   php bin/plugin-static-checks https://example.com/plugin.zip --standard=WordPress-Core
+ *   php bin/static-checks-phpcs https://downloads.wordpress.org/plugin/akismet.zip
+ *   php bin/static-checks-phpcs ./my-plugin.zip --output=results.json
+ *   php bin/static-checks-phpcs https://example.com/plugin.zip --standard=WordPress-Core
  */
 
 // Find autoloader
@@ -50,7 +50,7 @@ if (!$autoloadFound) {
     exit(1);
 }
 
-use FairForge\Tools\WordPress\PluginStaticChecks\PluginScanner;
+use FairForge\Tools\PhpcsStaticChecks\PluginScanner;
 
 /**
  * Parse command line arguments.

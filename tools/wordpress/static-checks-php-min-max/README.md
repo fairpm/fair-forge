@@ -1,26 +1,32 @@
-# WordPress Plugin PHPCS Scanner
+# PHP Version Compatibility Scanner
 
-A PHP library and CLI tool for scanning WordPress plugin ZIP files using PHPCS with WordPress coding standards. Returns results as JSON for easy integration with CI/CD pipelines and other tools.
+A PHP library and CLI tool for determining the minimum and maximum PHP version compatibility of PHP packages. Uses [PHPCompatibility](https://github.com/PHPCompatibility/PHPCompatibility) sniffs to detect version-specific features and syntax.
 
 ## Features
 
-- **Download and scan** plugin ZIP files from URLs (e.g., wordpress.org, github)
-- **Scan local ZIP files** or directories
-- **WordPress coding standards** built-in (WordPress, WordPress-Core, WordPress-Extra, WordPress-Docs)
-- **JSON output** for easy parsing and integration
-- **Use as library** in your PHP code or **CLI tool** from command line
-- **Configurable** standards, severity, file extensions, and more
+- **Determine minimum PHP version** - Find the lowest PHP version that runs without fatal errors
+- **Determine maximum PHP version** - Confirm compatibility with the latest PHP versions
+- **Scan from URL** - Download and scan ZIP files directly (e.g., WordPress.org plugins)
+- **Scan local files** - Scan local ZIP files or directories
+- **JSON output** - Structured results for CI/CD integration
+- **Composer constraints** - Get suggested `composer.json` PHP version requirements
+
+## How It Works
+
+The scanner runs [PHPCompatibility](https://github.com/PHPCompatibility/PHPCompatibility) checks against each PHP version (5.2 through 8.4). A version "passes" if there are no fatal errors - warnings are noted but don't cause a version to fail.
+
+The minimum version is the oldest PHP version that passes, and the maximum version is the newest that passes.
 
 ## Requirements
 
-- PHP 8.1 or higher
+- PHP 8.1 or higher (to run the scanner)
 - Composer
 - Extensions: `curl` (required for downloading)
 
 ## Installation
 
 ```bash
-cd fair-forge/tools/wordpress/plugin-static-checks
+cd fair-forge/tools/wordpress/static-checks-php-min-max
 composer install
 ```
 
@@ -30,13 +36,16 @@ composer install
 
 ```bash
 # Scan a plugin from WordPress.org
-php bin/plugin-static-checks https://downloads.wordpress.org/plugin/akismet.zip
+php bin/php-min-max https://downloads.wordpress.org/plugin/akismet.zip
 
 # Scan a local ZIP file
-php bin/plugin-static-checks ./my-plugin.zip
+php bin/php-min-max ./my-plugin.zip
+
+# Scan a local directory
+php bin/php-min-max ./src/
 
 # Save results to a file
-php bin/plugin-static-checks https://example.com/plugin.zip --output=results.json
+php bin/php-min-max https://example.com/plugin.zip --output=results.json
 ```
 
 ### Options
@@ -44,43 +53,62 @@ php bin/plugin-static-checks https://example.com/plugin.zip --output=results.jso
 | Option | Description |
 |--------|-------------|
 | `--output=FILE` | Save JSON output to specified file |
-| `--standard=NAME` | PHPCS standard to use (default: WordPress) |
-| `--no-warnings` | Exclude warnings from output (show only errors) |
-| `--severity=N` | Minimum severity level 1-10 (default: 1) |
 | `--extensions=LIST` | Comma-separated list of file extensions (default: php) |
-| `--insecure, -k` | Skip SSL certificate verification (for self-signed certs) |
+| `--insecure, -k` | Skip SSL certificate verification |
 | `--quiet, -q` | Suppress progress messages (output only JSON) |
 | `--help, -h` | Show help message |
 
-### Available Standards
+### PHP Versions Checked
 
-- `WordPress` - Complete WordPress coding standards (default)
-- `WordPress-Core` - Core WordPress coding standards only
-- `WordPress-Extra` - Additional WordPress coding standards
-- `WordPress-Docs` - Documentation standards
+The scanner checks compatibility with:
 
-### Examples
+`5.2, 5.3, 5.4, 5.5, 5.6, 7.0, 7.1, 7.2, 7.3, 7.4, 8.0, 8.1, 8.2, 8.3, 8.4`
 
-```bash
-# Scan with only errors (no warnings)
-php bin/plugin-static-checks plugin.zip --no-warnings
+### Example Output
 
-# Use WordPress-Core standard
-php bin/plugin-static-checks plugin.zip --standard=WordPress-Core
-
-# Scan PHP and JavaScript files
-php bin/plugin-static-checks plugin.zip --extensions=php,js
-
-# Quiet mode - only JSON output, save to file
-php bin/plugin-static-checks plugin.zip --quiet --output=results.json
+```json
+{
+    "success": true,
+    "compatibility": {
+        "min_version": "7.4",
+        "max_version": "8.4",
+        "version_range": ">=7.4 <=8.4",
+        "composer_constraint": "^7.4 || ^8.0"
+    },
+    "versions": {
+        "passed": ["7.4", "8.0", "8.1", "8.2", "8.3", "8.4"],
+        "failed": {
+            "5.6": {"errors": 12, "warnings": 3},
+            "7.0": {"errors": 5, "warnings": 1}
+        },
+        "warnings": {"7.4": 2}
+    },
+    "summary": {
+        "success": true,
+        "min_version": "7.4",
+        "max_version": "8.4",
+        "passed_count": 6,
+        "failed_count": 9,
+        "issue_count": 45
+    },
+    "issues": [
+        {
+            "file": "includes/functions.php",
+            "line": 25,
+            "type": "ERROR",
+            "message": "Function array_key_first() is not present in PHP version 7.3 or earlier",
+            "source": "PHPCompatibility.FunctionUse.NewFunctions.array_key_firstFound",
+            "affectedVersions": ["5.6", "7.0", "7.1", "7.2", "7.3"]
+        }
+    ]
+}
 ```
 
 ### Exit Codes
 
-- `0` - Scan completed successfully with no errors
-- `1` - Scan completed but found errors
-- `2` - Scan completed but found fixable errors
-- `3` - Scan could not be completed due to a procesing error
+- `0` - Scan completed, package is compatible with at least one version
+- `1` - Scan completed, package has no compatible versions
+- `2` - Scan could not be completed due to an error
 
 ## Library Usage
 
@@ -91,177 +119,65 @@ php bin/plugin-static-checks plugin.zip --quiet --output=results.json
 
 require_once 'vendor/autoload.php';
 
-use FairForge\Tools\WordPress\PluginStaticChecks\PluginScanner;
+use FairForge\Tools\PhpMinMax\CompatibilityScanner;
 
-$scanner = new PluginScanner();
+$scanner = new CompatibilityScanner();
 
 // Scan from URL
 $result = $scanner->scanFromUrl('https://downloads.wordpress.org/plugin/akismet.zip');
 
-// Or scan from local ZIP
-$result = $scanner->scanFromZipFile('./my-plugin.zip');
+// Or scan a local directory
+$result = $scanner->scanDirectory('./my-plugin/');
 
-// Or scan a directory
-$result = $scanner->scanDirectory('./my-plugin');
+// Get results
+echo "Min PHP: " . $result->minVersion . "\n";
+echo "Max PHP: " . $result->maxVersion . "\n";
+echo "Composer constraint: " . $result->getComposerConstraint() . "\n";
 
-// Get JSON output
+// Check specific version
+if ($result->isVersionCompatible('8.0')) {
+    echo "Compatible with PHP 8.0!\n";
+}
+
+// Get all issues
+foreach ($result->issues as $issue) {
+    echo "{$issue['file']}:{$issue['line']} - {$issue['message']}\n";
+}
+
+// Output as JSON
 echo $result->toJson();
-
-// Or save to file
-$result->saveToFile('results.json');
 ```
 
 ### Configuration
 
 ```php
-$scanner = new PluginScanner();
-
-// Set the PHPCS standard
-$scanner->setStandard('WordPress-Core');
-
-// Exclude warnings (only errors)
-$scanner->setIncludeWarnings(false);
-
-// Set minimum severity level
-$scanner->setSeverity(5);
+$scanner = new CompatibilityScanner();
 
 // Set file extensions to scan
 $scanner->setExtensions(['php', 'inc']);
 
-// Disable SSL verification (for development with self-signed certs)
+// Disable SSL verification (for self-signed certs)
 $scanner->setSslVerify(false);
-
-// Then scan
-$result = $scanner->scanFromUrl($url);
 ```
 
-### Working with Results
+## Use Cases
 
-```php
-$result = $scanner->scanFromUrl($url);
+1. **Plugin/Theme Development** - Verify your minimum PHP version requirement is accurate
+2. **Dependency Auditing** - Check if packages will work on your target PHP version
+3. **Upgrade Planning** - Identify what breaks when upgrading PHP
+4. **CI/CD Integration** - Automatically verify compatibility in your pipeline
 
-// Check for issues
-if ($result->hasErrors()) {
-    echo "Found {$result->errorCount} errors\n";
-}
+## Running Tests
 
-if ($result->hasWarnings()) {
-    echo "Found {$result->warningCount} warnings\n";
-}
-
-// Get summary
-$summary = $result->getSummary();
-print_r($summary);
-// [
-//     'success' => true,
-//     'errors' => 10,
-//     'warnings' => 25,
-//     'fixable' => 15,
-//     'files_scanned' => 5,
-//     'standard' => 'WordPress',
-// ]
-
-// Get all errors
-$errors = $result->getAllErrors();
-foreach ($errors as $error) {
-    echo "{$error['file']}:{$error['line']} - {$error['message']}\n";
-}
-
-// Get all warnings
-$warnings = $result->getAllWarnings();
-
-// Access raw file data
-foreach ($result->files as $filePath => $fileData) {
-    echo "File: $filePath\n";
-    echo "  Errors: {$fileData['errors']}\n";
-    echo "  Warnings: {$fileData['warnings']}\n";
-}
+```bash
+composer test
 ```
 
-## JSON Output Format
+## Credits
 
-```json
-{
-    "success": true,
-    "summary": {
-        "success": true,
-        "errors": 10,
-        "warnings": 25,
-        "fixable": 15,
-        "files_scanned": 5,
-        "standard": "WordPress"
-    },
-    "totals": {
-        "errors": 10,
-        "warnings": 25,
-        "fixable": 15
-    },
-    "files": {
-        "my-plugin/my-plugin.php": {
-            "errors": 5,
-            "warnings": 10,
-            "messages": [
-                {
-                    "message": "Missing doc comment for function",
-                    "source": "Squiz.Commenting.FunctionComment.Missing",
-                    "severity": 5,
-                    "fixable": false,
-                    "type": "ERROR",
-                    "line": 25,
-                    "column": 1
-                }
-            ]
-        }
-    },
-    "metadata": {
-        "standard": "WordPress",
-        "phpcs_exit_code": 1,
-        "scanned_at": "2024-01-15T10:30:00+00:00"
-    }
-}
-```
-
-## Integration Examples
-
-### GitHub Actions
-
-```yaml
-- name: Scan plugin
-  run: |
-    php bin/static-checks ./plugin.zip --output=phpcs-results.json --quiet
-    if [ $? -eq 1 ]; then
-      echo "PHPCS found errors"
-      exit 1
-    fi
-
-- name: Upload results
-  uses: actions/upload-artifact@v3
-  with:
-    name: phpcs-results
-    path: phpcs-results.json
-```
-
-### In a WordPress Plugin
-
-```php
-// In your plugin's admin page
-$scanner = new \FairForge\PhpCodeScan\PluginScanner();
-$scanner->setStandard('WordPress-Extra');
-
-try {
-    $result = $scanner->scanFromUrl($plugin_zip_url);
-    
-    if ($result->hasErrors()) {
-        wp_admin_notice(
-            sprintf('Plugin has %d coding standard errors', $result->errorCount),
-            ['type' => 'warning']
-        );
-    }
-} catch (RuntimeException $e) {
-    wp_admin_notice('Failed to scan plugin: ' . $e->getMessage(), ['type' => 'error']);
-}
-```
+This tool uses [PHPCompatibility](https://github.com/PHPCompatibility/PHPCompatibility) for PHP version compatibility detection.
 
 ## License
 
 MIT
+
