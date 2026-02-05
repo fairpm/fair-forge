@@ -79,7 +79,8 @@ php bin/plugin-static-checks plugin.zip --quiet --output=results.json
 
 - `0` - Scan completed successfully with no errors
 - `1` - Scan completed but found errors
-- `2` - Scan failed (invalid input, download error, etc.)
+- `2` - Scan completed but found fixable errors
+- `3` - Scan could not be completed due to a procesing error
 
 ## Library Usage
 
