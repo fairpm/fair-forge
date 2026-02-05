@@ -1,6 +1,6 @@
 {
-    "name": "fair-forge/static-checks-php-min-max",
-    "description": "Determine minimum and maximum PHP version compatibility for PHP packages using PHPCompatibility",
+    "name": "fair-forge/static-checks-security-header",
+    "description": "Check WordPress packages for security contact headers and files",
     "type": "library",
     "license": "MIT",
     "repositories": [
@@ -12,31 +12,24 @@
     "require": {
         "php": ">=8.1",
         "ext-curl": "*",
-        "fair-forge/shared": "@dev",
-        "squizlabs/php_codesniffer": "^3.7",
-        "phpcompatibility/php-compatibility": "^9.3"
+        "fair-forge/shared": "@dev"
     },
     "autoload": {
         "psr-4": {
-            "FairForge\\Tools\\PhpMinMax\\": "src/"
+            "FairForge\\Tools\\SecurityHeader\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "FairForge\\Tools\\PhpMinMax\\Tests\\": "tests/"
+            "FairForge\\Tools\\SecurityHeader\\Tests\\": "tests/"
         }
     },
     "bin": [
-        "bin/php-min-max"
+        "bin/security-header"
     ],
-    "config": {
-        "allow-plugins": {
-            "dealerdirect/phpcodesniffer-composer-installer": true
-        }
-    },
     "require-dev": {
-        "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
-        "phpunit/phpunit": "^10.0"
+        "phpunit/phpunit": "^10.0",
+        "squizlabs/php_codesniffer": "^3.7"
     },
     "scripts": {
         "lint": "phpcs",
