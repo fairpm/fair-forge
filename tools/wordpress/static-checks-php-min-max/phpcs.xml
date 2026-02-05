@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<ruleset name="FairForge Static Checks">
+    <description>PSR-12 coding standard for the FairForge Static Checks library.</description>
+
+    <!-- Use PSR-12 as the base standard -->
+    <rule ref="PSR12"/>
+
+    <!-- Paths to check -->
+    <file>src</file>
+    <file>tests</file>
+
+    <!-- Exclude vendor directory -->
+    <exclude-pattern>vendor/*</exclude-pattern>
+
+    <!-- Show progress and colors -->
+    <arg value="sp"/>
+    <arg name="colors"/>
+
+    <!-- Use parallel processing if available -->
+    <arg name="parallel" value="8"/>
+
+    <!-- Show sniff codes in all reports -->
+    <arg value="s"/>
+
+    <!-- Additional PSR-12 compatible rules -->
+    
+    <!-- Ensure proper line length (PSR-12 recommends soft limit of 120) -->
+    <rule ref="Generic.Files.LineLength">
+        <properties>
+            <property name="lineLimit" value="120"/>
+            <property name="absoluteLineLimit" value="0"/>
+        </properties>
+    </rule>
+
+    <!-- Ensure no trailing whitespace -->
+    <rule ref="Squiz.WhiteSpace.SuperfluousWhitespace"/>
+
+    <!-- Ensure consistent array syntax -->
+    <rule ref="Generic.Arrays.DisallowLongArraySyntax"/>
+
+    <!-- Ensure proper concatenation spacing -->
+    <rule ref="Squiz.Strings.ConcatenationSpacing">
+        <properties>
+            <property name="spacing" value="1"/>
+            <property name="ignoreNewlines" value="true"/>
+        </properties>
+    </rule>
+</ruleset>
