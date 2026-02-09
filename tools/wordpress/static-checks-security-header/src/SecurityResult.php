@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace FairForge\Tools\SecurityHeader;
 
-use JsonSerializable;
+use FairForge\Shared\AbstractToolResult;
 
 /**
  * Represents the result of a security header scan.
@@ -14,7 +14,7 @@ use JsonSerializable;
  * - Presence and content of security.md and security.txt files
  * - Consistency between the header and files
  */
-class SecurityResult implements JsonSerializable
+class SecurityResult extends AbstractToolResult
 {
     /**
      * @param bool $success Whether the scan completed successfully
@@ -128,15 +128,34 @@ class SecurityResult implements JsonSerializable
         ];
     }
 
+    // ------------------------------------------------------------------
+    // ToolResultInterface / AbstractToolResult implementations
+    // ------------------------------------------------------------------
+
     /**
-     * Convert to array for JSON serialization.
+     * {@inheritDoc}
+     */
+    public function getToolName(): string
+    {
+        return 'security-header';
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function isSuccess(): bool
+    {
+        return $this->success;
+    }
+
+    /**
+     * Detailed scan data (header info, file info, consistency).
      *
      * @return array<string, mixed>
      */
-    public function toArray(): array
+    public function getData(): array
     {
         return [
-            'success' => $this->success,
             'header' => [
                 'found' => $this->hasSecurityHeader(),
                 'contact' => $this->headerContact,
@@ -156,48 +175,25 @@ class SecurityResult implements JsonSerializable
                 'is_consistent' => $this->isConsistent,
                 'primary_contact' => $this->getPrimaryContact(),
             ],
-            'summary' => $this->getSummary(),
-            'issues' => $this->issues,
-            'metadata' => [
-                'scanned_at' => date('c'),
-                'package_type' => $this->packageType,
-                'scanned_directory' => $this->scannedDirectory,
-            ],
         ];
     }
 
     /**
-     * Specify data which should be serialized to JSON.
-     *
-     * @return array<string, mixed>
+     * {@inheritDoc}
      */
-    public function jsonSerialize(): array
+    public function getIssues(): array
     {
-        return $this->toArray();
+        return $this->issues;
     }
 
     /**
-     * Convert to JSON string.
-     *
-     * @param int $flags JSON encoding flags
+     * {@inheritDoc}
      */
-    public function toJson(int $flags = JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES): string
+    public function getMetadata(): array
     {
-        return json_encode($this, $flags) ?: '{}';
-    }
-
-    /**
-     * Save results to a JSON file.
-     *
-     * @param string $filePath Path to save the JSON file
-     * @param int $flags JSON encoding flags
-     *
-     * @return bool True if saved successfully
-     */
-    public function saveToFile(string $filePath, int $flags = JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES): bool
-    {
-        $json = $this->toJson($flags);
-
-        return file_put_contents($filePath, $json) !== false;
+        return [
+            'package_type' => $this->packageType,
+            'scanned_directory' => $this->scannedDirectory,
+        ];
     }
 }

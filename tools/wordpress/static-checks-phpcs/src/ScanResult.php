@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace FairForge\Tools\PhpcsStaticChecks;
 
-use JsonSerializable;
+use FairForge\Shared\AbstractToolResult;
 
 /**
  * Represents the result of a PHPCS scan.
  */
-class ScanResult implements JsonSerializable
+class ScanResult extends AbstractToolResult
 {
     /**
      * @param bool $success Whether the scan completed successfully
@@ -122,23 +122,36 @@ class ScanResult implements JsonSerializable
         ];
     }
 
+    // ------------------------------------------------------------------
+    // ToolResultInterface / AbstractToolResult implementations
+    // ------------------------------------------------------------------
+
     /**
-     * Convert to array for JSON serialization.
+     * {@inheritDoc}
+     */
+    public function getToolName(): string
+    {
+        return 'phpcs';
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function isSuccess(): bool
+    {
+        return $this->success;
+    }
+
+    /**
+     * Detailed scan data (totals, files, and optional raw output).
      *
      * @return array<string, mixed>
      */
-    public function toArray(): array
+    public function getData(): array
     {
         $data = [
-            'success' => $this->success,
-            'summary' => $this->getSummary(),
             'totals' => $this->totals,
             'files' => $this->files,
-            'metadata' => [
-                'standard' => $this->standard,
-                'phpcs_exit_code' => $this->phpcsExitCode,
-                'scanned_at' => date('c'),
-            ],
         ];
 
         if ($this->parseError !== null) {
@@ -153,38 +166,44 @@ class ScanResult implements JsonSerializable
     }
 
     /**
-     * Specify data which should be serialized to JSON.
-     *
-     * @return array<string, mixed>
+     * {@inheritDoc}
      */
-    public function jsonSerialize(): array
+    public function getIssues(): array
     {
-        return $this->toArray();
+        $issues = [];
+
+        foreach ($this->files as $filePath => $fileData) {
+            if (!isset($fileData['messages'])) {
+                continue;
+            }
+
+            foreach ($fileData['messages'] as $message) {
+                $issues[] = [
+                    'file' => $filePath,
+                    'line' => $message['line'] ?? 0,
+                    'column' => $message['column'] ?? 0,
+                    'type' => $message['type'] ?? 'ERROR',
+                    'message' => $message['message'] ?? '',
+                    'source' => $message['source'] ?? '',
+                    'severity' => $message['severity'] ?? 0,
+                    'fixable' => $message['fixable'] ?? false,
+                ];
+            }
+        }
+
+        return $issues;
     }
 
     /**
-     * Convert to JSON string.
-     *
-     * @param int $flags JSON encoding flags
+     * {@inheritDoc}
      */
-    public function toJson(int $flags = JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES): string
+    public function getMetadata(): array
     {
-        return json_encode($this, $flags) ?: '{}';
-    }
-
-    /**
-     * Save results to a JSON file.
-     *
-     * @param string $filePath Path to save the JSON file
-     * @param int $flags JSON encoding flags
-     *
-     * @return bool True if saved successfully
-     */
-    public function saveToFile(string $filePath, int $flags = JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES): bool
-    {
-        $json = $this->toJson($flags);
-
-        return file_put_contents($filePath, $json) !== false;
+        return [
+            'standard' => $this->standard,
+            'phpcs_exit_code' => $this->phpcsExitCode,
+            'scanned_directory' => $this->scannedDirectory,
+        ];
     }
 
     /**

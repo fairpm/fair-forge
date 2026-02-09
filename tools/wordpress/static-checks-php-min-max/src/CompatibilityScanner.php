@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace FairForge\Tools\PhpMinMax;
 
-use FairForge\Shared\ZipHandler;
+use FairForge\Shared\AbstractToolScanner;
 use RuntimeException;
 
 /**
@@ -13,7 +13,7 @@ use RuntimeException;
  * Scans PHP code to determine minimum and maximum PHP version compatibility.
  * Uses PHPCompatibility sniffs to detect version-specific features.
  */
-class CompatibilityScanner
+class CompatibilityScanner extends AbstractToolScanner
 {
     /**
      * All PHP versions to check for compatibility.
@@ -32,23 +32,12 @@ class CompatibilityScanner
      */
     private array $extensions = ['php'];
 
-    /** ZIP handler instance. */
-    private ZipHandler $zipHandler;
-
     /**
-     * Create a new CompatibilityScanner instance.
+     * Get the tool name identifier.
      */
-    public function __construct(?ZipHandler $zipHandler = null)
+    public function getToolName(): string
     {
-        $this->zipHandler = $zipHandler ?? new ZipHandler();
-    }
-
-    /**
-     * Get the ZIP handler.
-     */
-    public function getZipHandler(): ZipHandler
-    {
-        return $this->zipHandler;
+        return 'php-min-max';
     }
 
     /**
@@ -71,64 +60,6 @@ class CompatibilityScanner
         $this->extensions = $extensions;
 
         return $this;
-    }
-
-    /**
-     * Check if SSL verification is enabled.
-     */
-    public function getSslVerify(): bool
-    {
-        return $this->zipHandler->getSslVerify();
-    }
-
-    /**
-     * Set whether to verify SSL certificates.
-     */
-    public function setSslVerify(bool $verify): self
-    {
-        $this->zipHandler->setSslVerify($verify);
-
-        return $this;
-    }
-
-    /**
-     * Scan from a URL.
-     *
-     * @param string $url The URL to the ZIP file
-     *
-     * @throws RuntimeException If download or extraction fails
-     */
-    public function scanFromUrl(string $url): CompatibilityResult
-    {
-        $extractDir = $this->zipHandler->downloadAndExtract($url);
-
-        try {
-            return $this->scanDirectory($extractDir);
-        } finally {
-            $this->zipHandler->removeDirectory($extractDir);
-        }
-    }
-
-    /**
-     * Scan from a local ZIP file.
-     *
-     * @param string $zipPath Path to the local ZIP file
-     *
-     * @throws RuntimeException If extraction fails
-     */
-    public function scanFromZipFile(string $zipPath): CompatibilityResult
-    {
-        if (!file_exists($zipPath)) {
-            throw new RuntimeException("ZIP file not found: {$zipPath}");
-        }
-
-        $extractDir = $this->zipHandler->extract($zipPath);
-
-        try {
-            return $this->scanDirectory($extractDir);
-        } finally {
-            $this->zipHandler->removeDirectory($extractDir);
-        }
     }
 
     /**

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace FairForge\Tools\PhpMinMax\Tests;
 
+use FairForge\Shared\AbstractToolResult;
+use FairForge\Shared\ToolResultInterface;
 use FairForge\Tools\PhpMinMax\CompatibilityResult;
 use PHPUnit\Framework\TestCase;
 
@@ -12,6 +14,36 @@ use PHPUnit\Framework\TestCase;
  */
 class CompatibilityResultTest extends TestCase
 {
+    /**
+     * Test that CompatibilityResult implements ToolResultInterface.
+     */
+    public function testImplementsToolResultInterface(): void
+    {
+        $result = $this->createResult();
+        $this->assertInstanceOf(ToolResultInterface::class, $result);
+    }
+
+    /**
+     * Test getToolName returns correct slug.
+     */
+    public function testGetToolName(): void
+    {
+        $result = $this->createResult();
+        $this->assertEquals('php-min-max', $result->getToolName());
+    }
+
+    /**
+     * Test isSuccess returns correct value.
+     */
+    public function testIsSuccess(): void
+    {
+        $result = $this->createResult(success: true);
+        $this->assertTrue($result->isSuccess());
+
+        $result = $this->createResult(success: false);
+        $this->assertFalse($result->isSuccess());
+    }
+
     /**
      * Test that the success property correctly reflects the scan status.
      */
@@ -194,19 +226,28 @@ class CompatibilityResultTest extends TestCase
     }
 
     /**
-     * Test toArray returns correct structure.
+     * Test toArray returns the standard shared-envelope structure.
      */
     public function testToArrayReturnsCorrectStructure(): void
     {
         $result = $this->createResult();
         $array = $result->toArray();
 
+        // Standard envelope keys
+        $this->assertArrayHasKey('schema_version', $array);
+        $this->assertArrayHasKey('tool', $array);
         $this->assertArrayHasKey('success', $array);
-        $this->assertArrayHasKey('compatibility', $array);
-        $this->assertArrayHasKey('versions', $array);
         $this->assertArrayHasKey('summary', $array);
+        $this->assertArrayHasKey('data', $array);
         $this->assertArrayHasKey('issues', $array);
         $this->assertArrayHasKey('metadata', $array);
+
+        $this->assertEquals(AbstractToolResult::SCHEMA_VERSION, $array['schema_version']);
+        $this->assertEquals('php-min-max', $array['tool']);
+
+        // Tool-specific data lives inside 'data'
+        $this->assertArrayHasKey('compatibility', $array['data']);
+        $this->assertArrayHasKey('versions', $array['data']);
     }
 
     /**

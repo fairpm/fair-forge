@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace FairForge\Tools\SecurityHeader;
 
+use FairForge\Shared\AbstractToolScanner;
 use FairForge\Shared\ZipHandler;
-use RuntimeException;
 
 /**
  * WordPress Security Header Scanner.
@@ -18,7 +18,7 @@ use RuntimeException;
  * - security.txt file
  * - Consistency between all sources
  */
-class SecurityScanner
+class SecurityScanner extends AbstractToolScanner
 {
     /**
      * Pattern to match Security header in a comment block.
@@ -42,77 +42,12 @@ class SecurityScanner
      */
     private const THEME_HEADER_PATTERN = '/^\s*Theme Name:\s*.+/mi';
 
-    /** ZIP handler instance. */
-    private ZipHandler $zipHandler;
-
     /**
-     * Create a new SecurityScanner instance.
+     * {@inheritDoc}
      */
-    public function __construct(?ZipHandler $zipHandler = null)
+    public function getToolName(): string
     {
-        $this->zipHandler = $zipHandler ?? new ZipHandler();
-    }
-
-    /**
-     * Get the ZIP handler.
-     */
-    public function getZipHandler(): ZipHandler
-    {
-        return $this->zipHandler;
-    }
-
-    /**
-     * Check if SSL verification is enabled.
-     */
-    public function getSslVerify(): bool
-    {
-        return $this->zipHandler->getSslVerify();
-    }
-
-    /**
-     * Set whether to verify SSL certificates.
-     */
-    public function setSslVerify(bool $verify): self
-    {
-        $this->zipHandler->setSslVerify($verify);
-
-        return $this;
-    }
-
-    /**
-     * Scan from a URL.
-     *
-     * @param string $url The URL to the ZIP file
-     *
-     * @throws RuntimeException If download or extraction fails
-     */
-    public function scanFromUrl(string $url): SecurityResult
-    {
-        $tempDir = $this->zipHandler->downloadAndExtract($url);
-
-        try {
-            return $this->scanDirectory($tempDir);
-        } finally {
-            $this->zipHandler->removeDirectory($tempDir);
-        }
-    }
-
-    /**
-     * Scan from a local ZIP file.
-     *
-     * @param string $zipPath Path to the ZIP file
-     *
-     * @throws RuntimeException If extraction fails
-     */
-    public function scanFromZipFile(string $zipPath): SecurityResult
-    {
-        $tempDir = $this->zipHandler->extract($zipPath);
-
-        try {
-            return $this->scanDirectory($tempDir);
-        } finally {
-            $this->zipHandler->removeDirectory($tempDir);
-        }
+        return 'security-header';
     }
 
     /**
