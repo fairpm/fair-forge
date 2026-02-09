@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace FairForge\Tools\WordPress\PluginStaticChecks\Tests;
+namespace FairForge\Tools\PhpcsStaticChecks\Tests;
 
-use FairForge\Tools\WordPress\PluginStaticChecks\PluginScanner;
-use FairForge\Tools\WordPress\PluginStaticChecks\ScanResult;
-use FairForge\Tools\WordPress\PluginStaticChecks\ZipHandler;
+use FairForge\Shared\ZipHandler;
+use FairForge\Tools\PhpcsStaticChecks\PluginScanner;
+use FairForge\Tools\PhpcsStaticChecks\ScanResult;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
