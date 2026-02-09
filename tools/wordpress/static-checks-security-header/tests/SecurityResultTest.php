@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace FairForge\Tools\SecurityHeader\Tests;
 
+use FairForge\Shared\AbstractToolResult;
+use FairForge\Shared\ToolResultInterface;
 use FairForge\Tools\SecurityHeader\SecurityResult;
 use PHPUnit\Framework\TestCase;
 
@@ -260,7 +262,37 @@ class SecurityResultTest extends TestCase
     }
 
     /**
-     * Test toArray returns expected structure.
+     * Test that SecurityResult implements ToolResultInterface.
+     */
+    public function testImplementsToolResultInterface(): void
+    {
+        $result = $this->createResult();
+        $this->assertInstanceOf(ToolResultInterface::class, $result);
+    }
+
+    /**
+     * Test getToolName returns correct slug.
+     */
+    public function testGetToolName(): void
+    {
+        $result = $this->createResult();
+        $this->assertEquals('security-header', $result->getToolName());
+    }
+
+    /**
+     * Test isSuccess returns correct value.
+     */
+    public function testIsSuccess(): void
+    {
+        $result = $this->createResult(success: true);
+        $this->assertTrue($result->isSuccess());
+
+        $result = $this->createResult(success: false);
+        $this->assertFalse($result->isSuccess());
+    }
+
+    /**
+     * Test toArray returns the standard shared-envelope structure.
      */
     public function testToArray(): void
     {
@@ -273,21 +305,26 @@ class SecurityResultTest extends TestCase
 
         $array = $result->toArray();
 
+        // Standard envelope keys
+        $this->assertArrayHasKey('schema_version', $array);
+        $this->assertArrayHasKey('tool', $array);
         $this->assertArrayHasKey('success', $array);
-        $this->assertArrayHasKey('header', $array);
-        $this->assertArrayHasKey('files', $array);
-        $this->assertArrayHasKey('consistency', $array);
         $this->assertArrayHasKey('summary', $array);
+        $this->assertArrayHasKey('data', $array);
         $this->assertArrayHasKey('issues', $array);
         $this->assertArrayHasKey('metadata', $array);
 
-        $this->assertEquals('security@example.com', $array['header']['contact']);
-        $this->assertEquals('plugin.php', $array['header']['file']);
-        $this->assertTrue($array['files']['security_md']['exists']);
+        $this->assertEquals(AbstractToolResult::SCHEMA_VERSION, $array['schema_version']);
+        $this->assertEquals('security-header', $array['tool']);
+
+        // Tool-specific data lives inside 'data'
+        $this->assertEquals('security@example.com', $array['data']['header']['contact']);
+        $this->assertEquals('plugin.php', $array['data']['header']['file']);
+        $this->assertTrue($array['data']['files']['security_md']['exists']);
     }
 
     /**
-     * Test toJson returns valid JSON.
+     * Test toJson returns valid JSON with shared envelope.
      */
     public function testToJson(): void
     {
@@ -296,7 +333,8 @@ class SecurityResultTest extends TestCase
 
         $decoded = json_decode($json, true);
         $this->assertNotNull($decoded);
-        $this->assertEquals('test@example.com', $decoded['header']['contact']);
+        $this->assertEquals('security-header', $decoded['tool']);
+        $this->assertEquals('test@example.com', $decoded['data']['header']['contact']);
     }
 
     /**
@@ -309,7 +347,7 @@ class SecurityResultTest extends TestCase
     }
 
     /**
-     * Test saveToFile saves JSON correctly.
+     * Test saveToFile saves JSON with shared envelope.
      */
     public function testSaveToFile(): void
     {
@@ -323,7 +361,8 @@ class SecurityResultTest extends TestCase
 
             $content = file_get_contents($tempFile);
             $decoded = json_decode($content, true);
-            $this->assertEquals('test@example.com', $decoded['header']['contact']);
+            $this->assertEquals('security-header', $decoded['tool']);
+            $this->assertEquals('test@example.com', $decoded['data']['header']['contact']);
         } finally {
             if (file_exists($tempFile)) {
                 unlink($tempFile);

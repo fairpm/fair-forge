@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace FairForge\Tools\PhpMinMax;
 
-use JsonSerializable;
+use FairForge\Shared\AbstractToolResult;
 
 /**
  * Represents the result of a PHP version compatibility scan.
  */
-class CompatibilityResult implements JsonSerializable
+class CompatibilityResult extends AbstractToolResult
 {
     /**
      * @param bool $success Whether the scan completed successfully
@@ -173,15 +173,34 @@ class CompatibilityResult implements JsonSerializable
         ];
     }
 
+    // ------------------------------------------------------------------
+    // ToolResultInterface / AbstractToolResult implementations
+    // ------------------------------------------------------------------
+
     /**
-     * Convert to array for JSON serialization.
+     * {@inheritDoc}
+     */
+    public function getToolName(): string
+    {
+        return 'php-min-max';
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function isSuccess(): bool
+    {
+        return $this->success;
+    }
+
+    /**
+     * Detailed compatibility data (version ranges, per-version results).
      *
      * @return array<string, mixed>
      */
-    public function toArray(): array
+    public function getData(): array
     {
         return [
-            'success' => $this->success,
             'compatibility' => [
                 'min_version' => $this->minVersion,
                 'max_version' => $this->maxVersion,
@@ -193,47 +212,25 @@ class CompatibilityResult implements JsonSerializable
                 'failed' => $this->failedVersions,
                 'warnings' => $this->warningVersions,
             ],
-            'summary' => $this->getSummary(),
-            'issues' => $this->issues,
-            'metadata' => [
-                'scanned_at' => date('c'),
-                'php_versions_checked' => CompatibilityScanner::PHP_VERSIONS,
-            ],
         ];
     }
 
     /**
-     * Specify data which should be serialized to JSON.
-     *
-     * @return array<string, mixed>
+     * {@inheritDoc}
      */
-    public function jsonSerialize(): array
+    public function getIssues(): array
     {
-        return $this->toArray();
+        return $this->issues;
     }
 
     /**
-     * Convert to JSON string.
-     *
-     * @param int $flags JSON encoding flags
+     * {@inheritDoc}
      */
-    public function toJson(int $flags = JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES): string
+    public function getMetadata(): array
     {
-        return json_encode($this, $flags) ?: '{}';
-    }
-
-    /**
-     * Save results to a JSON file.
-     *
-     * @param string $filePath Path to save the JSON file
-     * @param int $flags JSON encoding flags
-     *
-     * @return bool True if saved successfully
-     */
-    public function saveToFile(string $filePath, int $flags = JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES): bool
-    {
-        $json = $this->toJson($flags);
-
-        return file_put_contents($filePath, $json) !== false;
+        return [
+            'php_versions_checked' => CompatibilityScanner::PHP_VERSIONS,
+            'scanned_directory' => $this->scannedDirectory,
+        ];
     }
 }

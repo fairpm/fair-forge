@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace FairForge\Tools\PhpMinMax\Tests;
 
+use FairForge\Shared\ScanTarget;
+use FairForge\Shared\ToolScannerInterface;
 use FairForge\Shared\ZipHandler;
 use FairForge\Tools\PhpMinMax\CompatibilityResult;
 use FairForge\Tools\PhpMinMax\CompatibilityScanner;
@@ -33,6 +35,43 @@ class CompatibilityScannerTest extends TestCase
         $this->assertContains('7.4', $versions);
         $this->assertContains('8.0', $versions);
         $this->assertContains('8.4', $versions);
+    }
+
+    /**
+     * Test that CompatibilityScanner implements ToolScannerInterface.
+     */
+    public function testImplementsToolScannerInterface(): void
+    {
+        $this->assertInstanceOf(ToolScannerInterface::class, $this->scanner);
+    }
+
+    /**
+     * Test getToolName returns correct slug.
+     */
+    public function testGetToolName(): void
+    {
+        $this->assertEquals('php-min-max', $this->scanner->getToolName());
+    }
+
+    /**
+     * Test scan() dispatches directory target and returns CompatibilityResult.
+     */
+    public function testScanWithDirectoryTarget(): void
+    {
+        $tempDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'scanner_scan_test_' . uniqid();
+        mkdir($tempDir, 0o755, true);
+        file_put_contents($tempDir . '/test.php', '<?php echo "Hello";');
+
+        try {
+            $target = ScanTarget::fromDirectory($tempDir);
+            $result = $this->scanner->scan($target);
+
+            $this->assertInstanceOf(CompatibilityResult::class, $result);
+            $this->assertTrue($result->success);
+        } finally {
+            @unlink($tempDir . '/test.php');
+            @rmdir($tempDir);
+        }
     }
 
     /**

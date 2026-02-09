@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace FairForge\Tools\PhpcsStaticChecks\Tests;
 
+use FairForge\Shared\ScanTarget;
+use FairForge\Shared\ToolScannerInterface;
 use FairForge\Shared\ZipHandler;
 use FairForge\Tools\PhpcsStaticChecks\PluginScanner;
 use FairForge\Tools\PhpcsStaticChecks\ScanResult;
@@ -36,6 +38,43 @@ class PluginScannerTest extends TestCase
     public function testDefaultStandardIsWordPress(): void
     {
         $this->assertEquals('WordPress', $this->scanner->getStandard());
+    }
+
+    /**
+     * Test that PluginScanner implements ToolScannerInterface.
+     */
+    public function testImplementsToolScannerInterface(): void
+    {
+        $this->assertInstanceOf(ToolScannerInterface::class, $this->scanner);
+    }
+
+    /**
+     * Test getToolName returns correct slug.
+     */
+    public function testGetToolName(): void
+    {
+        $this->assertEquals('phpcs', $this->scanner->getToolName());
+    }
+
+    /**
+     * Test scan() dispatches directory target and returns ScanResult.
+     */
+    public function testScanWithDirectoryTarget(): void
+    {
+        $tempDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'scanner_scan_test_' . uniqid();
+        mkdir($tempDir, 0o755, true);
+        file_put_contents($tempDir . '/test.php', '<?php echo "Hello";');
+
+        try {
+            $target = ScanTarget::fromDirectory($tempDir);
+            $result = $this->scanner->scan($target);
+
+            $this->assertInstanceOf(ScanResult::class, $result);
+            $this->assertTrue($result->success);
+        } finally {
+            @unlink($tempDir . '/test.php');
+            @rmdir($tempDir);
+        }
     }
 
     /**

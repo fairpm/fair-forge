@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace FairForge\Tools\PhpcsStaticChecks\Tests;
 
+use FairForge\Shared\AbstractToolResult;
+use FairForge\Shared\ToolResultInterface;
 use FairForge\Tools\PhpcsStaticChecks\ScanResult;
 use PHPUnit\Framework\TestCase;
 
@@ -15,6 +17,36 @@ use PHPUnit\Framework\TestCase;
  */
 class ScanResultTest extends TestCase
 {
+    /**
+     * Test that ScanResult implements ToolResultInterface.
+     */
+    public function testImplementsToolResultInterface(): void
+    {
+        $result = $this->createScanResult();
+        $this->assertInstanceOf(ToolResultInterface::class, $result);
+    }
+
+    /**
+     * Test getToolName returns correct slug.
+     */
+    public function testGetToolName(): void
+    {
+        $result = $this->createScanResult();
+        $this->assertEquals('phpcs', $result->getToolName());
+    }
+
+    /**
+     * Test isSuccess returns correct value.
+     */
+    public function testIsSuccess(): void
+    {
+        $result = $this->createScanResult(success: true);
+        $this->assertTrue($result->isSuccess());
+
+        $result = $this->createScanResult(success: false);
+        $this->assertFalse($result->isSuccess());
+    }
+
     /**
      * Test that the success property correctly reflects the scan status.
      */
@@ -233,7 +265,7 @@ class ScanResultTest extends TestCase
     }
 
     /**
-     * Test that toArray returns an array with the expected structure.
+     * Test that toArray returns an array with the standard shared-envelope structure.
      */
     public function testToArrayContainsExpectedStructure(): void
     {
@@ -245,15 +277,25 @@ class ScanResultTest extends TestCase
 
         $array = $result->toArray();
 
+        // Standard envelope keys
+        $this->assertArrayHasKey('schema_version', $array);
+        $this->assertArrayHasKey('tool', $array);
         $this->assertArrayHasKey('success', $array);
         $this->assertArrayHasKey('summary', $array);
-        $this->assertArrayHasKey('totals', $array);
-        $this->assertArrayHasKey('files', $array);
+        $this->assertArrayHasKey('data', $array);
+        $this->assertArrayHasKey('issues', $array);
         $this->assertArrayHasKey('metadata', $array);
+
+        $this->assertEquals(AbstractToolResult::SCHEMA_VERSION, $array['schema_version']);
+        $this->assertEquals('phpcs', $array['tool']);
+
+        // Tool-specific data lives inside 'data'
+        $this->assertArrayHasKey('totals', $array['data']);
+        $this->assertArrayHasKey('files', $array['data']);
     }
 
     /**
-     * Test that toArray includes parse_error key when a parse error is present.
+     * Test that toArray includes parse_error in data when present.
      */
     public function testToArrayIncludesParseErrorWhenPresent(): void
     {
@@ -261,12 +303,12 @@ class ScanResultTest extends TestCase
 
         $array = $result->toArray();
 
-        $this->assertArrayHasKey('parse_error', $array);
-        $this->assertEquals('JSON parse error', $array['parse_error']);
+        $this->assertArrayHasKey('parse_error', $array['data']);
+        $this->assertEquals('JSON parse error', $array['data']['parse_error']);
     }
 
     /**
-     * Test that toArray includes raw_output key when raw output is present.
+     * Test that toArray includes raw_output in data when present.
      */
     public function testToArrayIncludesRawOutputWhenPresent(): void
     {
@@ -274,8 +316,8 @@ class ScanResultTest extends TestCase
 
         $array = $result->toArray();
 
-        $this->assertArrayHasKey('raw_output', $array);
-        $this->assertEquals('Raw PHPCS output', $array['raw_output']);
+        $this->assertArrayHasKey('raw_output', $array['data']);
+        $this->assertEquals('Raw PHPCS output', $array['data']['raw_output']);
     }
 
     /**

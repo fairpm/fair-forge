@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace FairForge\Tools\SecurityHeader\Tests;
 
+use FairForge\Shared\ScanTarget;
+use FairForge\Shared\ToolScannerInterface;
 use FairForge\Shared\ZipHandler;
 use FairForge\Tools\SecurityHeader\SecurityResult;
 use FairForge\Tools\SecurityHeader\SecurityScanner;
@@ -35,6 +37,46 @@ class SecurityScannerTest extends TestCase
     public function testDefaultSslVerifyIsTrue(): void
     {
         $this->assertTrue($this->scanner->getSslVerify());
+    }
+
+    /**
+     * Test that SecurityScanner implements ToolScannerInterface.
+     */
+    public function testImplementsToolScannerInterface(): void
+    {
+        $this->assertInstanceOf(ToolScannerInterface::class, $this->scanner);
+    }
+
+    /**
+     * Test getToolName returns correct slug.
+     */
+    public function testGetToolName(): void
+    {
+        $this->assertEquals('security-header', $this->scanner->getToolName());
+    }
+
+    /**
+     * Test scan() dispatches directory target correctly.
+     */
+    public function testScanWithDirectoryTarget(): void
+    {
+        $pluginDir = $this->testDir . '/my-plugin';
+        mkdir($pluginDir);
+
+        file_put_contents($pluginDir . '/my-plugin.php', <<<'PHP'
+<?php
+/**
+ * Plugin Name: My Plugin
+ * Security: security@example.com
+ */
+PHP);
+
+        $target = ScanTarget::fromDirectory($pluginDir);
+        $result = $this->scanner->scan($target);
+
+        $this->assertInstanceOf(SecurityResult::class, $result);
+        $this->assertTrue($result->success);
+        $this->assertEquals('security@example.com', $result->headerContact);
     }
 
     /**

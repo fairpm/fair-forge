@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace FairForge\Tools\PhpcsStaticChecks;
 
+use FairForge\Shared\AbstractToolScanner;
 use FairForge\Shared\ZipHandler;
 use RuntimeException;
 
@@ -21,7 +22,7 @@ use RuntimeException;
  * Usage from CLI:
  *   php bin/static-checks https://example.com/plugin.zip
  */
-class PluginScanner
+class PluginScanner extends AbstractToolScanner
 {
     /** PHPCS standard to use for scanning. */
     private string $standard = 'WordPress';
@@ -46,23 +47,12 @@ class PluginScanner
      */
     private array $additionalArgs = [];
 
-    /** ZIP handler instance. */
-    private ZipHandler $zipHandler;
-
     /**
-     * Create a new PluginScanner instance.
+     * {@inheritDoc}
      */
-    public function __construct(?ZipHandler $zipHandler = null)
+    public function getToolName(): string
     {
-        $this->zipHandler = $zipHandler ?? new ZipHandler();
-    }
-
-    /**
-     * Get the ZIP handler.
-     */
-    public function getZipHandler(): ZipHandler
-    {
-        return $this->zipHandler;
+        return 'phpcs';
     }
 
     /**
@@ -153,71 +143,6 @@ class PluginScanner
         $this->additionalArgs = $args;
 
         return $this;
-    }
-
-    /**
-     * Check if SSL verification is enabled.
-     */
-    public function getSslVerify(): bool
-    {
-        return $this->zipHandler->getSslVerify();
-    }
-
-    /**
-     * Set whether to verify SSL certificates.
-     *
-     * Warning: Disabling SSL verification is insecure and should only be used
-     * in development environments with self-signed certificates.
-     */
-    public function setSslVerify(bool $verify): self
-    {
-        $this->zipHandler->setSslVerify($verify);
-
-        return $this;
-    }
-
-    /**
-     * Scan a WordPress plugin from a URL.
-     *
-     * @param string $url The URL to the plugin ZIP file
-     *
-     * @throws RuntimeException If download or extraction fails
-     *
-     * @return ScanResult The scan results
-     */
-    public function scanFromUrl(string $url): ScanResult
-    {
-        $extractDir = $this->zipHandler->downloadAndExtract($url);
-
-        try {
-            return $this->scanDirectory($extractDir);
-        } finally {
-            $this->zipHandler->removeDirectory($extractDir);
-        }
-    }
-
-    /**
-     * Scan a WordPress plugin from a local ZIP file.
-     *
-     * @param string $zipPath Path to the local ZIP file
-     *
-     * @throws RuntimeException If extraction fails
-     *
-     * @return ScanResult The scan results
-     */
-    public function scanFromZipFile(string $zipPath): ScanResult
-    {
-        if (!file_exists($zipPath)) {
-            throw new RuntimeException("ZIP file not found: {$zipPath}");
-        }
-
-        $extractDir = $this->zipHandler->extract($zipPath);
-
-        try {
-            return $this->scanDirectory($extractDir);
-        } finally {
-            $this->zipHandler->removeDirectory($extractDir);
-        }
     }
 
     /**
