@@ -10,7 +10,7 @@ use FairForge\Tools\ContactInfo\ContactInfoResult;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests for the ContactInfoResult class.
+ * Tests for the ContactInfoResult class (publisher contact only).
  */
 class ContactInfoResultTest extends TestCase
 {
@@ -22,13 +22,9 @@ class ContactInfoResultTest extends TestCase
         $result = new ContactInfoResult(
             success: true,
             publisherName: 'John Doe',
-            publisherUri: 'https://johndoe.com',
+            publisherUri: 'mailto:john@johndoe.com',
             projectUri: 'https://example.com/my-plugin',
-            supportHeaderContact: 'support@example.com',
             headerFile: 'my-plugin.php',
-            hasSupportMd: true,
-            supportMdContact: 'support@example.com',
-            isConsistent: true,
             issues: [],
             scannedDirectory: '/tmp/test',
             packageType: 'plugin',
@@ -36,13 +32,9 @@ class ContactInfoResultTest extends TestCase
 
         $this->assertTrue($result->success);
         $this->assertEquals('John Doe', $result->publisherName);
-        $this->assertEquals('https://johndoe.com', $result->publisherUri);
+        $this->assertEquals('mailto:john@johndoe.com', $result->publisherUri);
         $this->assertEquals('https://example.com/my-plugin', $result->projectUri);
-        $this->assertEquals('support@example.com', $result->supportHeaderContact);
         $this->assertEquals('my-plugin.php', $result->headerFile);
-        $this->assertTrue($result->hasSupportMd);
-        $this->assertEquals('support@example.com', $result->supportMdContact);
-        $this->assertTrue($result->isConsistent);
         $this->assertEmpty($result->issues);
         $this->assertEquals('/tmp/test', $result->scannedDirectory);
         $this->assertEquals('plugin', $result->packageType);
@@ -94,96 +86,6 @@ class ContactInfoResultTest extends TestCase
     }
 
     /**
-     * Test hasSupportHeader returns true when support header contact exists.
-     */
-    public function testHasSupportHeaderWhenPresent(): void
-    {
-        $result = $this->createResult(supportHeaderContact: 'support@example.com');
-        $this->assertTrue($result->hasSupportHeader());
-    }
-
-    /**
-     * Test hasSupportHeader returns false when no support header.
-     */
-    public function testHasSupportHeaderWhenMissing(): void
-    {
-        $result = $this->createResult();
-        $this->assertFalse($result->hasSupportHeader());
-    }
-
-    /**
-     * Test hasSupportFile returns true when SUPPORT.md exists.
-     */
-    public function testHasSupportFileWithMd(): void
-    {
-        $result = $this->createResult(hasSupportMd: true);
-        $this->assertTrue($result->hasSupportFile());
-    }
-
-    /**
-     * Test hasSupportFile returns false when no files.
-     */
-    public function testHasSupportFileWhenMissing(): void
-    {
-        $result = $this->createResult();
-        $this->assertFalse($result->hasSupportFile());
-    }
-
-    /**
-     * Test hasSupportInfo returns true with header.
-     */
-    public function testHasSupportInfoWithHeader(): void
-    {
-        $result = $this->createResult(supportHeaderContact: 'support@example.com');
-        $this->assertTrue($result->hasSupportInfo());
-    }
-
-    /**
-     * Test hasSupportInfo returns true with file.
-     */
-    public function testHasSupportInfoWithFile(): void
-    {
-        $result = $this->createResult(hasSupportMd: true);
-        $this->assertTrue($result->hasSupportInfo());
-    }
-
-    /**
-     * Test hasSupportInfo returns false with nothing.
-     */
-    public function testHasSupportInfoWhenMissing(): void
-    {
-        $result = $this->createResult();
-        $this->assertFalse($result->hasSupportInfo());
-    }
-
-    /**
-     * Test hasContactInfo returns true with publisher info.
-     */
-    public function testHasContactInfoWithPublisher(): void
-    {
-        $result = $this->createResult(publisherName: 'John Doe');
-        $this->assertTrue($result->hasContactInfo());
-    }
-
-    /**
-     * Test hasContactInfo returns true with support info.
-     */
-    public function testHasContactInfoWithSupport(): void
-    {
-        $result = $this->createResult(supportHeaderContact: 'support@example.com');
-        $this->assertTrue($result->hasContactInfo());
-    }
-
-    /**
-     * Test hasContactInfo returns false with nothing.
-     */
-    public function testHasContactInfoWhenMissing(): void
-    {
-        $result = $this->createResult();
-        $this->assertFalse($result->hasContactInfo());
-    }
-
-    /**
      * Test hasIssues returns true when issues exist.
      */
     public function testHasIssuesWhenPresent(): void
@@ -202,40 +104,6 @@ class ContactInfoResultTest extends TestCase
     }
 
     /**
-     * Test getPrimarySupportContact returns header contact first.
-     */
-    public function testGetPrimarySupportContactPrefersHeader(): void
-    {
-        $result = $this->createResult(
-            supportHeaderContact: 'header@example.com',
-            hasSupportMd: true,
-            supportMdContact: 'md@example.com',
-        );
-        $this->assertEquals('header@example.com', $result->getPrimarySupportContact());
-    }
-
-    /**
-     * Test getPrimarySupportContact falls back to SUPPORT.md.
-     */
-    public function testGetPrimarySupportContactFallsBackToMd(): void
-    {
-        $result = $this->createResult(
-            hasSupportMd: true,
-            supportMdContact: 'md@example.com',
-        );
-        $this->assertEquals('md@example.com', $result->getPrimarySupportContact());
-    }
-
-    /**
-     * Test getPrimarySupportContact returns null when nothing found.
-     */
-    public function testGetPrimarySupportContactReturnsNullWhenMissing(): void
-    {
-        $result = $this->createResult();
-        $this->assertNull($result->getPrimarySupportContact());
-    }
-
-    /**
      * Test passes returns true when all conditions met.
      */
     public function testPassesWhenAllConditionsMet(): void
@@ -243,8 +111,7 @@ class ContactInfoResultTest extends TestCase
         $result = $this->createResult(
             success: true,
             publisherName: 'John Doe',
-            supportHeaderContact: 'support@example.com',
-            isConsistent: true,
+            publisherUri: 'mailto:john@example.com',
         );
         $this->assertTrue($result->passes());
     }
@@ -256,21 +123,6 @@ class ContactInfoResultTest extends TestCase
     {
         $result = $this->createResult(
             success: true,
-            isConsistent: true,
-        );
-        $this->assertFalse($result->passes());
-    }
-
-    /**
-     * Test passes returns false when not consistent.
-     */
-    public function testPassesFailsWhenInconsistent(): void
-    {
-        $result = $this->createResult(
-            success: true,
-            publisherName: 'John Doe',
-            supportHeaderContact: 'support@example.com',
-            isConsistent: false,
         );
         $this->assertFalse($result->passes());
     }
@@ -283,8 +135,7 @@ class ContactInfoResultTest extends TestCase
         $result = $this->createResult(
             success: false,
             publisherName: 'John Doe',
-            supportHeaderContact: 'support@example.com',
-            isConsistent: true,
+            publisherUri: 'mailto:john@example.com',
         );
         $this->assertFalse($result->passes());
     }
@@ -298,32 +149,12 @@ class ContactInfoResultTest extends TestCase
             success: true,
             publisherName: 'John Doe',
             publisherUri: 'https://example.com',
-            supportHeaderContact: 'https://example.com/support',
-            isConsistent: true,
         );
         $this->assertFalse($result->passes());
     }
 
     /**
-     * Test hasEmail returns true when support header has email.
-     */
-    public function testHasEmailWithSupportHeader(): void
-    {
-        $result = $this->createResult(supportHeaderContact: 'support@example.com');
-        $this->assertTrue($result->hasEmail());
-    }
-
-    /**
-     * Test hasEmail returns true when SUPPORT.md has email.
-     */
-    public function testHasEmailWithSupportMd(): void
-    {
-        $result = $this->createResult(hasSupportMd: true, supportMdContact: 'help@example.com');
-        $this->assertTrue($result->hasEmail());
-    }
-
-    /**
-     * Test hasEmail returns true when publisher URI is a mailto.
+     * Test hasEmail returns true when publisher URI has email.
      */
     public function testHasEmailWithPublisherUri(): void
     {
@@ -338,7 +169,6 @@ class ContactInfoResultTest extends TestCase
     {
         $result = $this->createResult(
             publisherUri: 'https://example.com',
-            supportHeaderContact: 'https://example.com/support',
         );
         $this->assertFalse($result->hasEmail());
     }
@@ -360,11 +190,8 @@ class ContactInfoResultTest extends TestCase
         $result = $this->createResult(
             success: true,
             publisherName: 'John Doe',
-            publisherUri: 'https://johndoe.com',
-            supportHeaderContact: 'support@example.com',
-            hasSupportMd: true,
-            supportMdContact: 'support@example.com',
-            isConsistent: true,
+            publisherUri: 'mailto:john@johndoe.com',
+            projectUri: 'https://example.com/plugin',
             issues: ['Warning: something'],
             packageType: 'plugin',
         );
@@ -375,13 +202,11 @@ class ContactInfoResultTest extends TestCase
         $this->assertTrue($summary['passes']);
         $this->assertTrue($summary['has_publisher_name']);
         $this->assertTrue($summary['has_publisher_uri']);
-        $this->assertTrue($summary['has_support_header']);
-        $this->assertTrue($summary['has_support_md']);
-        $this->assertTrue($summary['is_consistent']);
+        $this->assertTrue($summary['has_project_uri']);
+        $this->assertTrue($summary['has_email']);
         $this->assertEquals(1, $summary['issue_count']);
         $this->assertEquals('John Doe', $summary['publisher_name']);
-        $this->assertEquals('https://johndoe.com', $summary['publisher_uri']);
-        $this->assertEquals('support@example.com', $summary['primary_support_contact']);
+        $this->assertEquals('mailto:john@johndoe.com', $summary['publisher_uri']);
         $this->assertEquals('plugin', $summary['package_type']);
     }
 
@@ -422,12 +247,9 @@ class ContactInfoResultTest extends TestCase
     {
         $result = $this->createResult(
             publisherName: 'John Doe',
-            publisherUri: 'https://johndoe.com',
+            publisherUri: 'mailto:john@johndoe.com',
             projectUri: 'https://example.com/plugin',
-            supportHeaderContact: 'support@example.com',
             headerFile: 'plugin.php',
-            hasSupportMd: true,
-            supportMdContact: 'support@example.com',
         );
 
         $array = $result->toArray();
@@ -446,12 +268,9 @@ class ContactInfoResultTest extends TestCase
 
         // Tool-specific data lives inside 'data'
         $this->assertEquals('John Doe', $array['data']['publisher']['name']);
-        $this->assertEquals('https://johndoe.com', $array['data']['publisher']['uri']);
+        $this->assertEquals('mailto:john@johndoe.com', $array['data']['publisher']['uri']);
         $this->assertEquals('plugin.php', $array['data']['publisher']['file']);
         $this->assertEquals('https://example.com/plugin', $array['data']['project']['uri']);
-        $this->assertTrue($array['data']['support']['header']['found']);
-        $this->assertEquals('support@example.com', $array['data']['support']['header']['contact']);
-        $this->assertTrue($array['data']['support']['support_md']['exists']);
     }
 
     /**
@@ -461,7 +280,7 @@ class ContactInfoResultTest extends TestCase
     {
         $result = $this->createResult(
             publisherName: 'Test Author',
-            supportHeaderContact: 'test@example.com',
+            publisherUri: 'mailto:test@example.com',
         );
         $json = $result->toJson();
 
@@ -469,7 +288,6 @@ class ContactInfoResultTest extends TestCase
         $this->assertNotNull($decoded);
         $this->assertEquals('contact-info', $decoded['tool']);
         $this->assertEquals('Test Author', $decoded['data']['publisher']['name']);
-        $this->assertEquals('test@example.com', $decoded['data']['support']['header']['contact']);
     }
 
     /**
@@ -488,7 +306,7 @@ class ContactInfoResultTest extends TestCase
     {
         $result = $this->createResult(
             publisherName: 'Test Author',
-            supportHeaderContact: 'test@example.com',
+            publisherUri: 'mailto:test@example.com',
         );
         $tempFile = sys_get_temp_dir() . '/contact-info-result-test-' . uniqid() . '.json';
 
@@ -501,7 +319,6 @@ class ContactInfoResultTest extends TestCase
             $decoded = json_decode($content, true);
             $this->assertEquals('contact-info', $decoded['tool']);
             $this->assertEquals('Test Author', $decoded['data']['publisher']['name']);
-            $this->assertEquals('test@example.com', $decoded['data']['support']['header']['contact']);
         } finally {
             if (file_exists($tempFile)) {
                 unlink($tempFile);
@@ -517,11 +334,7 @@ class ContactInfoResultTest extends TestCase
         ?string $publisherName = null,
         ?string $publisherUri = null,
         ?string $projectUri = null,
-        ?string $supportHeaderContact = null,
         ?string $headerFile = null,
-        bool $hasSupportMd = false,
-        ?string $supportMdContact = null,
-        bool $isConsistent = true,
         array $issues = [],
         ?string $packageType = null,
     ): ContactInfoResult {
@@ -530,11 +343,7 @@ class ContactInfoResultTest extends TestCase
             publisherName: $publisherName,
             publisherUri: $publisherUri,
             projectUri: $projectUri,
-            supportHeaderContact: $supportHeaderContact,
             headerFile: $headerFile,
-            hasSupportMd: $hasSupportMd,
-            supportMdContact: $supportMdContact,
-            isConsistent: $isConsistent,
             issues: $issues,
             scannedDirectory: '/tmp/test',
             packageType: $packageType,

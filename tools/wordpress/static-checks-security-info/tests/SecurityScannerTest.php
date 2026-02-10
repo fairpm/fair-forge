@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace FairForge\Tools\SecurityHeader\Tests;
+namespace FairForge\Tools\SecurityInfo\Tests;
 
 use FairForge\Shared\ScanTarget;
 use FairForge\Shared\ToolScannerInterface;
 use FairForge\Shared\ZipHandler;
-use FairForge\Tools\SecurityHeader\SecurityResult;
-use FairForge\Tools\SecurityHeader\SecurityScanner;
+use FairForge\Tools\SecurityInfo\SecurityResult;
+use FairForge\Tools\SecurityInfo\SecurityScanner;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -52,7 +52,7 @@ class SecurityScannerTest extends TestCase
      */
     public function testGetToolName(): void
     {
-        $this->assertEquals('security-header', $this->scanner->getToolName());
+        $this->assertEquals('security-info', $this->scanner->getToolName());
     }
 
     /**

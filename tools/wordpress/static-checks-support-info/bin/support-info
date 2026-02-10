@@ -4,12 +4,12 @@
 declare(strict_types=1);
 
 /**
- * WordPress Contact Info Scanner CLI
+ * WordPress Support Info Scanner CLI
  *
- * Checks WordPress plugins and themes for publisher and support contact information.
+ * Checks WordPress plugins and themes for support contact information.
  *
  * Usage:
- *   php bin/contact-info <url|path> [options]
+ *   php bin/support-info <url|path> [options]
  *
  * Options:
  *   --output=FILE           Save JSON output to specified file
@@ -18,8 +18,8 @@ declare(strict_types=1);
  *   --help, -h              Show this help message
  *
  * Examples:
- *   php bin/contact-info https://downloads.wordpress.org/plugin/akismet.zip
- *   php bin/contact-info ./my-plugin.zip --output=results.json
+ *   php bin/support-info https://downloads.wordpress.org/plugin/akismet.zip
+ *   php bin/support-info ./my-plugin.zip --output=results.json
  */
 
 // Find autoloader
@@ -44,7 +44,7 @@ if (!$autoloadFound) {
     exit(1);
 }
 
-use FairForge\Tools\ContactInfo\ContactInfoScanner;
+use FairForge\Tools\SupportInfo\SupportInfoScanner;
 
 /**
  * Parse command line arguments.
@@ -88,15 +88,15 @@ function parseArguments(array $argv): array
 function printHelp(): void
 {
     echo <<<HELP
-WordPress Contact Info Scanner
+WordPress Support Info Scanner
 
-Checks WordPress plugins and themes for publisher contact information:
-- Author: header (publisher name) in the main plugin/theme file
-- Author URI: header (publisher URL) in the main plugin/theme file
-- Plugin URI: / Theme URI: header (project URL)
+Checks WordPress plugins and themes for support contact information:
+- Support: header (email or URL) in the main plugin/theme file
+- SUPPORT.md file with contact information
+- Consistency between support contact sources
 
 USAGE:
-    php bin/contact-info <url|path> [options]
+    php bin/support-info <url|path> [options]
 
 ARGUMENTS:
     <url|path>              URL to a ZIP file or path to a local ZIP/directory
@@ -109,31 +109,31 @@ OPTIONS:
 
 EXAMPLES:
     # Check a WordPress plugin from wordpress.org
-    php bin/contact-info https://downloads.wordpress.org/plugin/akismet.zip
+    php bin/support-info https://downloads.wordpress.org/plugin/akismet.zip
 
     # Check a local ZIP file and save results
-    php bin/contact-info ./my-plugin.zip --output=results.json
+    php bin/support-info ./my-plugin.zip --output=results.json
 
     # Check a local directory
-    php bin/contact-info ./my-plugin/
+    php bin/support-info ./my-plugin/
 
     # Quiet mode - only JSON output
-    php bin/contact-info plugin.zip --quiet
+    php bin/support-info plugin.zip --quiet
 
 EXPECTED FORMAT:
-    The main plugin/theme file should contain publisher headers:
+    The main plugin/theme file should contain a Support header:
 
     /**
      * Plugin Name: My Plugin
      * ...
-     * Author: John Doe
-     * Author URI: mailto:john@johndoe.com
-     * Plugin URI: https://example.com/my-plugin
+     * Support: support@example.com
      */
 
+    And/or a SUPPORT.md file with contact information.
+
 EXIT CODES:
-    0 - Scan passed (has publisher info and at least one email)
-    1 - Scan completed but found issues (missing info or no email)
+    0 - Scan passed (has Support header, at least one email, contacts consistent)
+    1 - Scan completed but found issues (missing info, no email, or inconsistent)
     2 - Scan could not be completed due to an error
 
 HELP;
@@ -161,12 +161,12 @@ if ($options['help']) {
 
 if ($target === null) {
     fwrite(STDERR, "Error: No input URL or file path provided.\n\n");
-    fwrite(STDERR, "Usage: php bin/contact-info <url|path> [options]\n");
-    fwrite(STDERR, "Run 'php bin/contact-info --help' for more information.\n");
+    fwrite(STDERR, "Usage: php bin/support-info <url|path> [options]\n");
+    fwrite(STDERR, "Run 'php bin/support-info --help' for more information.\n");
     exit(2);
 }
 
-$scanner = new ContactInfoScanner();
+$scanner = new SupportInfoScanner();
 
 if ($options['insecure']) {
     $scanner->setSslVerify(false);
@@ -207,9 +207,11 @@ try {
         fwrite(STDERR, "\n--- Summary ---\n");
         $summary = $result->getSummary();
         fwrite(STDERR, "Package type: " . ($summary['package_type'] ?? 'unknown') . "\n");
-        fwrite(STDERR, "Publisher name: " . ($summary['publisher_name'] ?? 'Not found') . "\n");
-        fwrite(STDERR, "Publisher URI: " . ($summary['publisher_uri'] ?? 'Not found') . "\n");
+        fwrite(STDERR, "Support header: " . ($summary['has_support_header'] ? 'Yes' : 'No') . "\n");
+        fwrite(STDERR, "SUPPORT.md: " . ($summary['has_support_md'] ? 'Yes' : 'No') . "\n");
         fwrite(STDERR, "Has email: " . ($summary['has_email'] ? 'Yes' : 'No') . "\n");
+        fwrite(STDERR, "Consistent: " . ($summary['is_consistent'] ? 'Yes' : 'No') . "\n");
+        fwrite(STDERR, "Primary contact: " . ($summary['primary_support_contact'] ?? 'Not found') . "\n");
         fwrite(STDERR, "Issues: " . $summary['issue_count'] . "\n");
         fwrite(STDERR, "Result: " . ($result->passes() ? 'PASS' : 'FAIL') . "\n");
     }

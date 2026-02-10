@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace FairForge\Tools\SecurityHeader;
+namespace FairForge\Tools\SecurityInfo;
 
 use FairForge\Shared\AbstractToolResult;
 
@@ -137,7 +137,7 @@ class SecurityResult extends AbstractToolResult
      */
     public function getToolName(): string
     {
-        return 'security-header';
+        return 'security-info';
     }
 
     /**

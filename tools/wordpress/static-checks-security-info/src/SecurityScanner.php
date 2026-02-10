@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace FairForge\Tools\SecurityHeader;
+namespace FairForge\Tools\SecurityInfo;
 
 use FairForge\Shared\AbstractToolScanner;
 use FairForge\Shared\ZipHandler;
@@ -47,7 +47,7 @@ class SecurityScanner extends AbstractToolScanner
      */
     public function getToolName(): string
     {
-        return 'security-header';
+        return 'security-info';
     }
 
     /**
@@ -234,7 +234,8 @@ class SecurityScanner extends AbstractToolScanner
 
         $commentBlock = null;
         foreach ($allBlocks[0] as $block) {
-            if (preg_match(self::PLUGIN_HEADER_PATTERN, $block)
+            if (
+                preg_match(self::PLUGIN_HEADER_PATTERN, $block)
                 || preg_match(self::THEME_HEADER_PATTERN, $block)
             ) {
                 $commentBlock = $block;

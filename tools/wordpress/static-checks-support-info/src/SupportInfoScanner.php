@@ -2,47 +2,28 @@
 
 declare(strict_types=1);
 
-namespace FairForge\Tools\ContactInfo;
+namespace FairForge\Tools\SupportInfo;
 
 use FairForge\Shared\AbstractToolScanner;
 use FairForge\Shared\ZipHandler;
 
 /**
- * WordPress Contact Info Scanner.
+ * WordPress Support Info Scanner.
  *
- * Scans WordPress plugins and themes for publisher contact information.
+ * Scans WordPress plugins and themes for support contact information.
  *
  * Checks for:
- * - Author: header in the main plugin/theme file comment block (publisher name)
- * - Author URI: header in the main plugin/theme file comment block (publisher URL)
- * - Plugin URI: / Theme URI: header (project URL)
+ * - Support: header in the main plugin/theme file comment block (support contact)
+ * - SUPPORT.md file with contact information
+ * - Consistency between support contact sources
  */
-class ContactInfoScanner extends AbstractToolScanner
+class SupportInfoScanner extends AbstractToolScanner
 {
     /**
-     * Pattern to match Author header in a comment block.
-     * Matches: Author: John Doe
-     * Does NOT match: Author URI: ...
+     * Pattern to match Support header in a comment block.
+     * Matches: Support: support@example.com or Support: https://example.com/support
      */
-    private const AUTHOR_HEADER_PATTERN = '/^\s*\*?\s*Author:\s*(.+?)\s*$/mi';
-
-    /**
-     * Pattern to match Author URI header in a comment block.
-     * Matches: Author URI: https://example.com
-     */
-    private const AUTHOR_URI_HEADER_PATTERN = '/^\s*\*?\s*Author URI:\s*(.+?)\s*$/mi';
-
-    /**
-     * Pattern to match Plugin URI header in a comment block.
-     * Matches: Plugin URI: https://example.com/plugin
-     */
-    private const PLUGIN_URI_HEADER_PATTERN = '/^\s*\*?\s*Plugin URI:\s*(.+?)\s*$/mi';
-
-    /**
-     * Pattern to match Theme URI header in a comment block.
-     * Matches: Theme URI: https://example.com/theme
-     */
-    private const THEME_URI_HEADER_PATTERN = '/^\s*\*?\s*Theme URI:\s*(.+?)\s*$/mi';
+    private const SUPPORT_HEADER_PATTERN = '/^\s*\*?\s*Support:\s*(.+?)\s*$/mi';
 
     /**
      * Common plugin header patterns to identify the main file.
@@ -59,25 +40,26 @@ class ContactInfoScanner extends AbstractToolScanner
      */
     public function getToolName(): string
     {
-        return 'contact-info';
+        return 'support-info';
     }
 
     /**
-     * Scan a directory for publisher contact information headers.
+     * Scan a directory for support contact information.
      *
      * @param string $directory Path to the directory
      */
-    public function scanDirectory(string $directory): ContactInfoResult
+    public function scanDirectory(string $directory): SupportInfoResult
     {
         $directory = rtrim($directory, '/\\');
 
         if (!is_dir($directory)) {
-            return new ContactInfoResult(
+            return new SupportInfoResult(
                 success: false,
-                publisherName: null,
-                publisherUri: null,
-                projectUri: null,
+                supportHeaderContact: null,
                 headerFile: null,
+                hasSupportMd: false,
+                supportMdContact: null,
+                isConsistent: false,
                 issues: ['Directory does not exist: ' . $directory],
                 scannedDirectory: $directory,
                 parseError: 'Directory not found',
@@ -92,37 +74,50 @@ class ContactInfoScanner extends AbstractToolScanner
         $packageType = $mainFileInfo['type'];
         $mainFile = $mainFileInfo['file'];
 
-        // Extract headers from main file
-        $publisherName = null;
-        $publisherUri = null;
-        $projectUri = null;
+        // Extract support header from main file
+        $supportHeaderContact = null;
         $headerFile = null;
 
         if ($mainFile !== null) {
-            $headers = $this->extractHeaders($mainFile, $packageType);
-            $publisherName = $headers['author'];
-            $publisherUri = $headers['author_uri'];
-            $projectUri = $headers['project_uri'];
+            $supportHeaderContact = $this->extractSupportHeader($mainFile, $packageType);
 
-            if ($publisherName !== null || $publisherUri !== null) {
+            if ($supportHeaderContact !== null) {
                 $headerFile = $this->getRelativePath($packageDir, $mainFile);
             }
         }
 
+        // Check for support files
+        $supportMdInfo = $this->findSupportMd($packageDir);
+
+        // Gather support contacts for consistency check
+        $supportContacts = [];
+        if ($supportHeaderContact !== null) {
+            $supportContacts['header'] = $this->normalizeContact($supportHeaderContact);
+        }
+        if ($supportMdInfo['contact'] !== null) {
+            $supportContacts['support.md'] = $this->normalizeContact($supportMdInfo['contact']);
+        }
+
+        // Check consistency
+        $isConsistent = $this->checkConsistency($supportContacts);
+
         // Gather issues
         $issues = $this->gatherIssues(
-            $publisherName,
-            $publisherUri,
+            $supportHeaderContact,
             $mainFile,
+            $supportMdInfo,
+            $isConsistent,
+            $supportContacts,
             $packageType,
         );
 
-        return new ContactInfoResult(
+        return new SupportInfoResult(
             success: true,
-            publisherName: $publisherName,
-            publisherUri: $publisherUri,
-            projectUri: $projectUri,
+            supportHeaderContact: $supportHeaderContact,
             headerFile: $headerFile,
+            hasSupportMd: $supportMdInfo['exists'],
+            supportMdContact: $supportMdInfo['contact'],
+            isConsistent: $isConsistent,
             issues: $issues,
             scannedDirectory: $packageDir,
             packageType: $packageType,
@@ -207,15 +202,13 @@ class ContactInfoScanner extends AbstractToolScanner
     }
 
     /**
-     * Extract all publisher-related headers from a file.
-     *
-     * @return array{author: string|null, author_uri: string|null, project_uri: string|null}
+     * Extract Support header from a file.
      */
-    private function extractHeaders(string $filePath, ?string $packageType): array
+    private function extractSupportHeader(string $filePath, ?string $packageType): ?string
     {
         $content = file_get_contents($filePath);
         if ($content === false) {
-            return ['author' => null, 'author_uri' => null, 'project_uri' => null];
+            return null;
         }
 
         // Find the comment block that contains the Plugin Name / Theme Name header.
@@ -226,7 +219,7 @@ class ContactInfoScanner extends AbstractToolScanner
             : self::PLUGIN_HEADER_PATTERN;
 
         if (!preg_match_all('/\/\*\*?.*?\*\//s', $content, $allBlocks)) {
-            return ['author' => null, 'author_uri' => null, 'project_uri' => null];
+            return null;
         }
 
         $commentBlock = null;
@@ -238,64 +231,139 @@ class ContactInfoScanner extends AbstractToolScanner
         }
 
         if ($commentBlock === null) {
-            return ['author' => null, 'author_uri' => null, 'project_uri' => null];
+            return null;
         }
 
-        $author = null;
-        $authorUri = null;
-        $projectUri = null;
-
-        if (preg_match(self::AUTHOR_HEADER_PATTERN, $commentBlock, $m)) {
-            $author = trim($m[1]);
+        if (preg_match(self::SUPPORT_HEADER_PATTERN, $commentBlock, $matches)) {
+            return trim($matches[1]);
         }
 
-        if (preg_match(self::AUTHOR_URI_HEADER_PATTERN, $commentBlock, $m)) {
-            $authorUri = trim($m[1]);
+        return null;
+    }
+
+    /**
+     * Find and parse SUPPORT.md file.
+     *
+     * @return array{exists: bool, contact: string|null, path: string|null}
+     */
+    private function findSupportMd(string $directory): array
+    {
+        $possibleNames = ['SUPPORT.md', 'support.md', 'Support.md'];
+
+        foreach ($possibleNames as $name) {
+            $path = $directory . '/' . $name;
+            if (file_exists($path)) {
+                $contact = $this->extractContactFromMarkdown($path);
+                return ['exists' => true, 'contact' => $contact, 'path' => $path];
+            }
         }
 
-        // Project URI: use Plugin URI for plugins, Theme URI for themes
-        $projectUriPattern = $packageType === 'theme'
-            ? self::THEME_URI_HEADER_PATTERN
-            : self::PLUGIN_URI_HEADER_PATTERN;
-        if (preg_match($projectUriPattern, $commentBlock, $m)) {
-            $projectUri = trim($m[1]);
+        return ['exists' => false, 'contact' => null, 'path' => null];
+    }
+
+    /**
+     * Extract contact information from a markdown file.
+     */
+    private function extractContactFromMarkdown(string $filePath): ?string
+    {
+        $content = file_get_contents($filePath);
+        if ($content === false) {
+            return null;
         }
 
-        return [
-            'author' => $author,
-            'author_uri' => $authorUri,
-            'project_uri' => $projectUri,
-        ];
+        // Look for email addresses
+        if (preg_match('/[\w.+-]+@[\w.-]+\.[a-zA-Z]{2,}/', $content, $matches)) {
+            return $matches[0];
+        }
+
+        // Look for URLs with support-related paths
+        if (preg_match('/https?:\/\/[^\s\)]+(?:support|help|contact|forum)[^\s\)]*/i', $content, $matches)) {
+            return $matches[0];
+        }
+
+        // Look for any URL
+        if (preg_match('/https?:\/\/[^\s\)]+/', $content, $matches)) {
+            return $matches[0];
+        }
+
+        return null;
+    }
+
+    /**
+     * Normalize a contact string for comparison.
+     */
+    private function normalizeContact(string $contact): string
+    {
+        // Lowercase
+        $normalized = strtolower(trim($contact));
+
+        // Remove mailto: prefix
+        $normalized = preg_replace('/^mailto:/i', '', $normalized) ?? $normalized;
+
+        // Remove trailing slashes from URLs
+        $normalized = rtrim($normalized, '/');
+
+        return $normalized;
+    }
+
+    /**
+     * Check if all contacts are consistent.
+     *
+     * @param array<string, string> $contacts
+     */
+    private function checkConsistency(array $contacts): bool
+    {
+        if (count($contacts) <= 1) {
+            return true;
+        }
+
+        $uniqueContacts = array_unique(array_values($contacts));
+
+        return count($uniqueContacts) === 1;
     }
 
     /**
      * Gather issues based on the scan results.
      *
+     * @param array{exists: bool, contact: string|null, path: string|null} $supportMdInfo
+     * @param array<string, string> $supportContacts
      * @return string[]
      */
     private function gatherIssues(
-        ?string $publisherName,
-        ?string $publisherUri,
+        ?string $supportHeaderContact,
         ?string $mainFile,
+        array $supportMdInfo,
+        bool $isConsistent,
+        array $supportContacts,
         ?string $packageType,
     ): array {
         $issues = [];
 
         if ($mainFile === null) {
             $issues[] = 'Could not identify the main plugin or theme file';
-        } else {
-            if ($publisherName === null) {
-                $issues[] = 'Missing Author header in the main file comment block';
-            }
+        } elseif ($supportHeaderContact === null) {
+            $issues[] = 'Missing Support header in the main file comment block';
+        }
 
-            if ($publisherUri === null) {
-                $issues[] = 'Missing Author URI header in the main file comment block';
+        if (!$supportMdInfo['exists']) {
+            $issues[] = 'No SUPPORT.md file found';
+        }
+
+        if ($supportMdInfo['exists'] && $supportMdInfo['contact'] === null) {
+            $issues[] = 'SUPPORT.md exists but no contact information could be extracted';
+        }
+
+        if (!$isConsistent && count($supportContacts) > 1) {
+            $contactList = [];
+            foreach ($supportContacts as $source => $contact) {
+                $contactList[] = "$source: $contact";
             }
+            $issues[] = 'Inconsistent support contacts: ' . implode(', ', $contactList);
         }
 
         // Check that at least one field contains an email address
         $hasEmail = false;
-        $emailFields = [$publisherUri];
+        $emailFields = [$supportHeaderContact, $supportMdInfo['contact']];
         foreach ($emailFields as $value) {
             if ($value !== null && preg_match('/[\w.+-]+@[\w.-]+\.[a-zA-Z]{2,}/', $value)) {
                 $hasEmail = true;
@@ -303,7 +371,7 @@ class ContactInfoScanner extends AbstractToolScanner
             }
         }
         if (!$hasEmail) {
-            $issues[] = 'No email address found in any contact field';
+            $issues[] = 'No email address found in any support contact field';
         }
 
         return $issues;

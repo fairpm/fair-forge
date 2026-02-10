@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
-<ruleset name="FairForge Security Header">
-    <description>PSR-12 coding standard for the FairForge Security Header tool.</description>
+<ruleset name="FairForge Support Info">
+    <description>PSR-12 coding standard for the FairForge Support Info tool.</description>
 
     <!-- Use PSR-12 as the base standard -->
     <rule ref="PSR12"/>

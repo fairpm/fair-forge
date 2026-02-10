@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace FairForge\Tools\SecurityHeader\Tests;
+namespace FairForge\Tools\SecurityInfo\Tests;
 
 use FairForge\Shared\AbstractToolResult;
 use FairForge\Shared\ToolResultInterface;
-use FairForge\Tools\SecurityHeader\SecurityResult;
+use FairForge\Tools\SecurityInfo\SecurityResult;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -276,7 +276,7 @@ class SecurityResultTest extends TestCase
     public function testGetToolName(): void
     {
         $result = $this->createResult();
-        $this->assertEquals('security-header', $result->getToolName());
+        $this->assertEquals('security-info', $result->getToolName());
     }
 
     /**
@@ -315,7 +315,7 @@ class SecurityResultTest extends TestCase
         $this->assertArrayHasKey('metadata', $array);
 
         $this->assertEquals(AbstractToolResult::SCHEMA_VERSION, $array['schema_version']);
-        $this->assertEquals('security-header', $array['tool']);
+        $this->assertEquals('security-info', $array['tool']);
 
         // Tool-specific data lives inside 'data'
         $this->assertEquals('security@example.com', $array['data']['header']['contact']);
@@ -333,7 +333,7 @@ class SecurityResultTest extends TestCase
 
         $decoded = json_decode($json, true);
         $this->assertNotNull($decoded);
-        $this->assertEquals('security-header', $decoded['tool']);
+        $this->assertEquals('security-info', $decoded['tool']);
         $this->assertEquals('test@example.com', $decoded['data']['header']['contact']);
     }
 
@@ -361,7 +361,7 @@ class SecurityResultTest extends TestCase
 
             $content = file_get_contents($tempFile);
             $decoded = json_decode($content, true);
-            $this->assertEquals('security-header', $decoded['tool']);
+            $this->assertEquals('security-info', $decoded['tool']);
             $this->assertEquals('test@example.com', $decoded['data']['header']['contact']);
         } finally {
             if (file_exists($tempFile)) {

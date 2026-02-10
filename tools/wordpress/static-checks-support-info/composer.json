@@ -1,6 +1,6 @@
 {
-    "name": "fair-forge/static-checks-contact-info",
-    "description": "Check WordPress packages for publisher contact information",
+    "name": "fair-forge/static-checks-support-info",
+    "description": "Check WordPress packages for support contact information",
     "type": "library",
     "license": "MIT",
     "repositories": [
@@ -16,16 +16,16 @@
     },
     "autoload": {
         "psr-4": {
-            "FairForge\\Tools\\ContactInfo\\": "src/"
+            "FairForge\\Tools\\SupportInfo\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "FairForge\\Tools\\ContactInfo\\Tests\\": "tests/"
+            "FairForge\\Tools\\SupportInfo\\Tests\\": "tests/"
         }
     },
     "bin": [
-        "bin/contact-info"
+        "bin/support-info"
     ],
     "require-dev": {
         "phpunit/phpunit": "^10.0",
