@@ -4,12 +4,12 @@
 declare(strict_types=1);
 
 /**
- * WordPress Security Header Scanner CLI
+ * WordPress Contact Info Scanner CLI
  *
- * Checks WordPress plugins and themes for security contact headers and files.
+ * Checks WordPress plugins and themes for publisher and support contact information.
  *
  * Usage:
- *   php bin/security-header <url|path> [options]
+ *   php bin/contact-info <url|path> [options]
  *
  * Options:
  *   --output=FILE           Save JSON output to specified file
@@ -18,8 +18,8 @@ declare(strict_types=1);
  *   --help, -h              Show this help message
  *
  * Examples:
- *   php bin/security-header https://downloads.wordpress.org/plugin/akismet.zip
- *   php bin/security-header ./my-plugin.zip --output=results.json
+ *   php bin/contact-info https://downloads.wordpress.org/plugin/akismet.zip
+ *   php bin/contact-info ./my-plugin.zip --output=results.json
  */
 
 // Find autoloader
@@ -44,7 +44,7 @@ if (!$autoloadFound) {
     exit(1);
 }
 
-use FairForge\Tools\SecurityHeader\SecurityScanner;
+use FairForge\Tools\ContactInfo\ContactInfoScanner;
 
 /**
  * Parse command line arguments.
@@ -88,16 +88,18 @@ function parseArguments(array $argv): array
 function printHelp(): void
 {
     echo <<<HELP
-WordPress Security Header Scanner
+WordPress Contact Info Scanner
 
-Checks WordPress plugins and themes for security contact information:
-- Security: header in the main plugin/theme file comment block
-- security.md file with contact information
-- security.txt file following RFC 9116 format
-- Consistency between all security contact sources
+Checks WordPress plugins and themes for contact information:
+- Author: header (publisher name) in the main plugin/theme file
+- Author URI: header (publisher URL) in the main plugin/theme file
+- Plugin URI: / Theme URI: header (project URL)
+- Support: header (support contact) in the main plugin/theme file
+- SUPPORT.md file with contact information
+- Consistency between support contact sources
 
 USAGE:
-    php bin/security-header <url|path> [options]
+    php bin/contact-info <url|path> [options]
 
 ARGUMENTS:
     <url|path>              URL to a ZIP file or path to a local ZIP/directory
@@ -110,37 +112,32 @@ OPTIONS:
 
 EXAMPLES:
     # Check a WordPress plugin from wordpress.org
-    php bin/security-header https://downloads.wordpress.org/plugin/akismet.zip
+    php bin/contact-info https://downloads.wordpress.org/plugin/akismet.zip
 
     # Check a local ZIP file and save results
-    php bin/security-header ./my-plugin.zip --output=results.json
+    php bin/contact-info ./my-plugin.zip --output=results.json
 
     # Check a local directory
-    php bin/security-header ./my-plugin/
+    php bin/contact-info ./my-plugin/
 
     # Quiet mode - only JSON output
-    php bin/security-header plugin.zip --quiet
+    php bin/contact-info plugin.zip --quiet
 
 EXPECTED FORMAT:
-    The main plugin/theme file should contain a Security header:
+    The main plugin/theme file should contain contact headers:
 
     /**
      * Plugin Name: My Plugin
      * ...
-     * Security: security@example.com
-     */
-
-    Or with a URL:
-
-    /**
-     * Plugin Name: My Plugin
-     * ...
-     * Security: https://example.com/security
+     * Author: John Doe
+     * Author URI: https://johndoe.com
+     * Plugin URI: https://example.com/my-plugin
+     * Support: support@example.com
      */
 
 EXIT CODES:
-    0 - Scan passed (has security header and is consistent)
-    1 - Scan completed but found issues (missing header or inconsistent)
+    0 - Scan passed (has publisher info and support contacts are consistent)
+    1 - Scan completed but found issues (missing info or inconsistent)
     2 - Scan could not be completed due to an error
 
 HELP;
@@ -168,12 +165,12 @@ if ($options['help']) {
 
 if ($target === null) {
     fwrite(STDERR, "Error: No input URL or file path provided.\n\n");
-    fwrite(STDERR, "Usage: php bin/security-header <url|path> [options]\n");
-    fwrite(STDERR, "Run 'php bin/security-header --help' for more information.\n");
+    fwrite(STDERR, "Usage: php bin/contact-info <url|path> [options]\n");
+    fwrite(STDERR, "Run 'php bin/contact-info --help' for more information.\n");
     exit(2);
 }
 
-$scanner = new SecurityScanner();
+$scanner = new ContactInfoScanner();
 
 if ($options['insecure']) {
     $scanner->setSslVerify(false);
@@ -214,11 +211,12 @@ try {
         fwrite(STDERR, "\n--- Summary ---\n");
         $summary = $result->getSummary();
         fwrite(STDERR, "Package type: " . ($summary['package_type'] ?? 'unknown') . "\n");
-        fwrite(STDERR, "Has security header: " . ($summary['has_header'] ? 'Yes' : 'No') . "\n");
-        fwrite(STDERR, "Has security.md: " . ($summary['has_security_md'] ? 'Yes' : 'No') . "\n");
-        fwrite(STDERR, "Has security.txt: " . ($summary['has_security_txt'] ? 'Yes' : 'No') . "\n");
+        fwrite(STDERR, "Publisher name: " . ($summary['publisher_name'] ?? 'Not found') . "\n");
+        fwrite(STDERR, "Publisher URI: " . ($summary['publisher_uri'] ?? 'Not found') . "\n");
+        fwrite(STDERR, "Has support header: " . ($summary['has_support_header'] ? 'Yes' : 'No') . "\n");
+        fwrite(STDERR, "Has SUPPORT.md: " . ($summary['has_support_md'] ? 'Yes' : 'No') . "\n");
         fwrite(STDERR, "Is consistent: " . ($summary['is_consistent'] ? 'Yes' : 'No') . "\n");
-        fwrite(STDERR, "Primary contact: " . ($summary['primary_contact'] ?? 'None found') . "\n");
+        fwrite(STDERR, "Primary support contact: " . ($summary['primary_support_contact'] ?? 'None found') . "\n");
         fwrite(STDERR, "Issues: " . $summary['issue_count'] . "\n");
         fwrite(STDERR, "Result: " . ($result->passes() ? 'PASS' : 'FAIL') . "\n");
     }

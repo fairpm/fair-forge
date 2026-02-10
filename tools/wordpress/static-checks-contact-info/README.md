@@ -1,12 +1,15 @@
-# WordPress Security Header Scanner
+# WordPress Contact Info Scanner
 
-A PHP library and CLI tool for checking WordPress plugins and themes for security contact information. Returns results as JSON for easy integration with CI/CD pipelines and other tools.
+A PHP library and CLI tool for checking WordPress plugins and themes for publisher and support contact information. Returns results as JSON for easy integration with CI/CD pipelines and other tools.
 
 ## Features
 
-- **Check security headers** in the main plugin/theme file comment block
-- **Detect security files** (security.md, security.txt)
-- **Verify consistency** between all security contact sources
+- **Check publisher headers** (Author, Author URI) in the main plugin/theme file comment block
+- **Check project URI** (Plugin URI / Theme URI)
+- **Check support headers** (Support:) in the main plugin/theme file comment block
+- **Detect support files** (SUPPORT.md)
+- **Verify consistency** between support contact sources
+- **Require at least one email** address across all contact fields
 - **Download and scan** ZIP files from URLs (e.g., wordpress.org, github)
 - **Scan local ZIP files** or directories
 - **JSON output** for easy parsing and integration
@@ -14,11 +17,11 @@ A PHP library and CLI tool for checking WordPress plugins and themes for securit
 
 ## What It Checks
 
-WordPress packages should include security contact information in multiple locations:
+WordPress packages should include contact information in multiple locations:
 
-### 1. Security Header in Main File
+### 1. Publisher Contact in Main File
 
-The main plugin file (`plugin-name.php`) or theme file (`style.css`) should contain a `Security:` header:
+The main plugin file (`plugin-name.php`) or theme file (`style.css`) should contain `Author:` and `Author URI:` headers:
 
 ```php
 <?php
@@ -26,8 +29,23 @@ The main plugin file (`plugin-name.php`) or theme file (`style.css`) should cont
  * Plugin Name: My Plugin
  * Description: A great plugin
  * Version: 1.0.0
- * Author: Your Name
- * Security: security@example.com
+ * Author: John Doe
+ * Author URI: https://johndoe.com
+ * Plugin URI: https://example.com/my-plugin
+ */
+```
+
+### 2. Support Contact in Main File
+
+A custom `Support:` header with an email or URL:
+
+```php
+<?php
+/**
+ * Plugin Name: My Plugin
+ * Author: John Doe
+ * Author URI: https://johndoe.com
+ * Support: support@example.com
  */
 ```
 
@@ -36,29 +54,19 @@ Or with a URL:
 ```php
 /**
  * Plugin Name: My Plugin
- * Security: https://example.com/security
+ * Author: John Doe
+ * Support: https://example.com/support
  */
 ```
 
-### 2. security.md File
+### 3. SUPPORT.md File
 
-A `SECURITY.md` file in the root directory with contact information:
+A `SUPPORT.md` file in the root directory with contact information:
 
 ```markdown
-# Security Policy
+# Support
 
-## Reporting a Vulnerability
-
-Please report security vulnerabilities to security@example.com.
-```
-
-### 3. security.txt File
-
-A `security.txt` file following [RFC 9116](https://www.rfc-editor.org/rfc/rfc9116):
-
-```
-Contact: security@example.com
-Expires: 2030-01-01T00:00:00.000Z
+For help with this plugin, please contact support@example.com.
 ```
 
 ## Requirements
@@ -70,7 +78,7 @@ Expires: 2030-01-01T00:00:00.000Z
 ## Installation
 
 ```bash
-cd fair-forge/tools/wordpress/static-checks-security-header
+cd fair-forge/tools/wordpress/static-checks-contact-info
 composer install
 ```
 
@@ -80,16 +88,16 @@ composer install
 
 ```bash
 # Scan a plugin from WordPress.org
-php bin/security-header https://downloads.wordpress.org/plugin/akismet.zip
+php bin/contact-info https://downloads.wordpress.org/plugin/akismet.zip
 
 # Scan a local ZIP file
-php bin/security-header ./my-plugin.zip
+php bin/contact-info ./my-plugin.zip
 
 # Scan a local directory
-php bin/security-header ./my-plugin/
+php bin/contact-info ./my-plugin/
 
 # Save results to a file
-php bin/security-header https://example.com/plugin.zip --output=results.json
+php bin/contact-info https://example.com/plugin.zip --output=results.json
 ```
 
 ### Options
@@ -99,271 +107,176 @@ php bin/security-header https://example.com/plugin.zip --output=results.json
 | `--output=FILE` | Save JSON output to specified file |
 | `--insecure, -k` | Skip SSL certificate verification (for self-signed certs) |
 | `--quiet, -q` | Suppress progress messages (output only JSON) |
-| `--help, -h` | Show help message |
-
-### Examples
-
-```bash
-# Scan and save to file
-php bin/security-header plugin.zip --output=security.json
-
-# Quiet mode - only JSON output
-php bin/security-header plugin.zip --quiet
-
-# Skip SSL verification for self-signed certs
-php bin/security-header https://internal.example.com/plugin.zip --insecure
-```
+| `--help, -h` | Show this help message |
 
 ### Exit Codes
 
-- `0` - Scan passed (has security header and all contacts are consistent)
-- `1` - Scan completed but found issues (missing header or inconsistent contacts)
-- `2` - Scan could not be completed due to a processing error
+| Code | Meaning |
+|------|---------|
+| `0` | Scan passed — has publisher info, at least one email, and support contacts are consistent |
+| `1` | Scan completed but found issues (missing info, no email, or inconsistent) |
+| `2` | Error — scan could not complete |
+
+### Example Output
+
+```json
+{
+  "schema_version": "1.0.0",
+  "tool": "contact-info",
+  "success": true,
+  "summary": {
+    "success": true,
+    "passes": true,
+    "has_publisher_name": true,
+    "has_publisher_uri": true,
+    "has_project_uri": true,
+    "has_support_header": true,
+    "has_support_md": true,
+    "has_email": true,
+    "is_consistent": true,
+    "issue_count": 0,
+    "publisher_name": "John Doe",
+    "publisher_uri": "https://johndoe.com",
+    "primary_support_contact": "support@example.com",
+    "package_type": "plugin"
+  },
+  "data": {
+    "publisher": {
+      "name": "John Doe",
+      "uri": "https://johndoe.com",
+      "file": "my-plugin.php"
+    },
+    "project": {
+      "uri": "https://example.com/my-plugin"
+    },
+    "support": {
+      "header": {
+        "found": true,
+        "contact": "support@example.com"
+      },
+      "support_md": {
+        "exists": true,
+        "contact": "support@example.com"
+      }
+    },
+    "consistency": {
+      "is_consistent": true,
+      "primary_support_contact": "support@example.com"
+    }
+  },
+  "issues": [],
+  "metadata": {
+    "package_type": "plugin",
+    "scanned_directory": "/tmp/extracted/my-plugin"
+  }
+}
+```
 
 ## Library Usage
 
-### Basic Example
+### Basic Scanning
 
 ```php
-<?php
+use FairForge\Tools\ContactInfo\ContactInfoScanner;
 
-require_once 'vendor/autoload.php';
+$scanner = new ContactInfoScanner();
 
-use FairForge\Tools\SecurityHeader\SecurityScanner;
+// Scan a directory
+$result = $scanner->scanDirectory('/path/to/plugin');
 
-$scanner = new SecurityScanner();
+// Scan a ZIP file
+$result = $scanner->scanFromZipFile('/path/to/plugin.zip');
 
 // Scan from URL
 $result = $scanner->scanFromUrl('https://downloads.wordpress.org/plugin/akismet.zip');
-
-// Or scan from local ZIP
-$result = $scanner->scanFromZipFile('./my-plugin.zip');
-
-// Or scan a directory
-$result = $scanner->scanDirectory('./my-plugin');
-
-// Check if it passes
-if ($result->passes()) {
-    echo "Security check passed!\n";
-} else {
-    echo "Security check failed.\n";
-}
-
-// Get JSON output
-echo $result->toJson();
-
-// Or save to file
-$result->saveToFile('results.json');
-```
-
-### Configuration
-
-```php
-$scanner = new SecurityScanner();
-
-// Disable SSL verification (for development with self-signed certs)
-$scanner->setSslVerify(false);
-
-// Then scan
-$result = $scanner->scanFromUrl($url);
 ```
 
 ### Working with Results
 
 ```php
-$result = $scanner->scanFromUrl($url);
-
-// Check what was found
-echo "Has security header: " . ($result->hasSecurityHeader() ? 'Yes' : 'No') . "\n";
-echo "Has security.md: " . ($result->hasSecurityMd ? 'Yes' : 'No') . "\n";
-echo "Has security.txt: " . ($result->hasSecurityTxt ? 'Yes' : 'No') . "\n";
-echo "Is consistent: " . ($result->isConsistent ? 'Yes' : 'No') . "\n";
-
-// Get contact information
-echo "Header contact: " . ($result->headerContact ?? 'None') . "\n";
-echo "Header file: " . ($result->headerFile ?? 'None') . "\n";
-echo "Primary contact: " . ($result->getPrimaryContact() ?? 'None') . "\n";
-
-// Check for issues
-if ($result->hasIssues()) {
-    echo "Issues found:\n";
-    foreach ($result->issues as $issue) {
-        echo "  - $issue\n";
-    }
+// Check if scan passed
+if ($result->passes()) {
+    echo "All contact info checks passed!\n";
 }
+
+// Get publisher info
+echo "Publisher: " . $result->publisherName . "\n";
+echo "Publisher URI: " . $result->publisherUri . "\n";
+echo "Project URI: " . $result->projectUri . "\n";
+
+// Get support contact
+echo "Support: " . $result->getPrimarySupportContact() . "\n";
+
+// Check what's present
+$result->hasPublisherInfo();   // true if Author or Author URI found
+$result->hasEmail();           // true if any field contains an email address
+$result->hasSupportHeader();   // true if Support: header found
+$result->hasSupportFile();     // true if SUPPORT.md exists
+$result->hasSupportInfo();     // true if any support info found
+$result->hasContactInfo();     // true if any contact info found
 
 // Get summary
 $summary = $result->getSummary();
-print_r($summary);
-// [
-//     'success' => true,
-//     'passes' => true,
-//     'has_header' => true,
-//     'has_security_md' => true,
-//     'has_security_txt' => false,
-//     'is_consistent' => true,
-//     'issue_count' => 0,
-//     'primary_contact' => 'security@example.com',
-//     'package_type' => 'plugin',
-// ]
 
-// Check package type
-echo "Package type: " . ($result->packageType ?? 'unknown') . "\n";
+// Get JSON
+$json = $result->toJson();
+
+// Save to file
+$result->saveToFile('results.json');
 ```
 
-## JSON Output Format
-
-```json
-{
-    "success": true,
-    "header": {
-        "found": true,
-        "contact": "security@example.com",
-        "file": "my-plugin.php"
-    },
-    "files": {
-        "security_md": {
-            "exists": true,
-            "contact": "security@example.com"
-        },
-        "security_txt": {
-            "exists": true,
-            "contact": "security@example.com"
-        }
-    },
-    "consistency": {
-        "is_consistent": true,
-        "primary_contact": "security@example.com"
-    },
-    "summary": {
-        "success": true,
-        "passes": true,
-        "has_header": true,
-        "has_security_md": true,
-        "has_security_txt": true,
-        "is_consistent": true,
-        "issue_count": 0,
-        "primary_contact": "security@example.com",
-        "package_type": "plugin"
-    },
-    "issues": [],
-    "metadata": {
-        "scanned_at": "2026-02-05T10:30:00+00:00",
-        "package_type": "plugin",
-        "scanned_directory": "/tmp/extracted/my-plugin"
-    }
-}
-```
-
-## Integration Examples
-
-### GitHub Actions
-
-```yaml
-name: Security Header Check
-
-on: [push, pull_request]
-
-jobs:
-  security-check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.3'
-          
-      - name: Install dependencies
-        run: composer install
-        
-      - name: Check security header
-        run: |
-          php bin/security-header ./ --output=security-results.json --quiet
-          
-          # Check if it passes
-          PASSES=$(jq -r '.summary.passes' security-results.json)
-          if [ "$PASSES" != "true" ]; then
-            echo "Security header check failed!"
-            jq '.issues' security-results.json
-            exit 1
-          fi
-          
-          echo "Security header check passed!"
-
-      - name: Upload results
-        uses: actions/upload-artifact@v4
-        with:
-          name: security-results
-          path: security-results.json
-```
-
-### In a WordPress Plugin Review Tool
+### Using ScanTarget
 
 ```php
-use FairForge\Tools\SecurityHeader\SecurityScanner;
+use FairForge\Shared\ScanTarget;
+use FairForge\Tools\ContactInfo\ContactInfoScanner;
 
-$scanner = new SecurityScanner();
+$scanner = new ContactInfoScanner();
 
-try {
-    $result = $scanner->scanFromUrl($plugin_zip_url);
-    
-    if (!$result->passes()) {
-        $issues = $result->issues;
-        
-        if (!$result->hasSecurityHeader()) {
-            wp_admin_notice(
-                'Plugin is missing a Security header in the main file.',
-                ['type' => 'error']
-            );
-        }
-        
-        if (!$result->isConsistent) {
-            wp_admin_notice(
-                'Plugin has inconsistent security contact information.',
-                ['type' => 'warning']
-            );
-        }
-    } else {
-        wp_admin_notice(
-            sprintf('Security contact: %s', $result->getPrimaryContact()),
-            ['type' => 'success']
-        );
-    }
-} catch (RuntimeException $e) {
-    wp_admin_notice('Failed to check security: ' . $e->getMessage(), ['type' => 'error']);
-}
+// From URL
+$target = ScanTarget::fromUrl('https://example.com/plugin.zip');
+$result = $scanner->scan($target);
+
+// From ZIP file
+$target = ScanTarget::fromZipFile('/path/to/plugin.zip');
+$result = $scanner->scan($target);
+
+// From directory
+$target = ScanTarget::fromDirectory('/path/to/plugin');
+$result = $scanner->scan($target);
 ```
 
-## Use Cases
-
-1. **Plugin/Theme Development** - Ensure security contact information is properly added
-2. **Plugin Directory Submission** - Validate before submitting to WordPress.org
-3. **Security Auditing** - Check third-party plugins for security contact info
-4. **CI/CD Integration** - Automatically verify security headers in your pipeline
-5. **Plugin Review** - Check plugins before installation
-
-## Running Tests
+## Development
 
 ```bash
+# Install dependencies
+composer install
+
+# Run tests
 composer test
-```
 
-## Running Code Quality Checks
-
-```bash
-# Run PHPCS
+# Run linter
 composer lint
 
-# Fix PHPCS issues
+# Fix linting issues
 composer lint:fix
 
 # Run all checks
 composer check
 ```
 
-## License
+## Issues Detected
 
-MIT
+The scanner reports the following issues:
+
+| Issue | Description |
+|-------|-------------|
+| Missing Author header | No `Author:` header in the main file comment block |
+| Missing Author URI header | No `Author URI:` header in the main file comment block |
+| Missing Support header | No `Support:` header in the main file comment block |
+| No SUPPORT.md file | No `SUPPORT.md` file found in the package root |
+| SUPPORT.md no contact | `SUPPORT.md` exists but no contact info could be extracted |
+| Inconsistent contacts | Support contacts in header and file don't match |
+| No email address | No email address found in any contact field |
+| No main file | Could not identify the main plugin or theme file |
 

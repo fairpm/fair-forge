@@ -225,12 +225,26 @@ class SecurityScanner extends AbstractToolScanner
             return null;
         }
 
-        // Find the opening comment block (plugin/theme header)
-        if (!preg_match('/\/\*\*?.*?\*\//s', $content, $matches)) {
+        // Find the comment block that contains the Plugin Name / Theme Name
+        // header. Some plugins (e.g. Akismet) have a docblock before the
+        // actual plugin header, so we cannot just grab the first block.
+        if (!preg_match_all('/\/\*\*?.*?\*\//s', $content, $allBlocks)) {
             return null;
         }
 
-        $commentBlock = $matches[0];
+        $commentBlock = null;
+        foreach ($allBlocks[0] as $block) {
+            if (preg_match(self::PLUGIN_HEADER_PATTERN, $block)
+                || preg_match(self::THEME_HEADER_PATTERN, $block)
+            ) {
+                $commentBlock = $block;
+                break;
+            }
+        }
+
+        if ($commentBlock === null) {
+            return null;
+        }
 
         if (preg_match(self::SECURITY_HEADER_PATTERN, $commentBlock, $matches)) {
             return trim($matches[1]);

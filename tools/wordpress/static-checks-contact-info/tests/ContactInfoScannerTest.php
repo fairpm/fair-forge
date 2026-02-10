@@ -2,27 +2,27 @@
 
 declare(strict_types=1);
 
-namespace FairForge\Tools\SecurityHeader\Tests;
+namespace FairForge\Tools\ContactInfo\Tests;
 
 use FairForge\Shared\ScanTarget;
 use FairForge\Shared\ToolScannerInterface;
 use FairForge\Shared\ZipHandler;
-use FairForge\Tools\SecurityHeader\SecurityResult;
-use FairForge\Tools\SecurityHeader\SecurityScanner;
+use FairForge\Tools\ContactInfo\ContactInfoResult;
+use FairForge\Tools\ContactInfo\ContactInfoScanner;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests for the SecurityScanner class.
+ * Tests for the ContactInfoScanner class.
  */
-class SecurityScannerTest extends TestCase
+class ContactInfoScannerTest extends TestCase
 {
-    private SecurityScanner $scanner;
+    private ContactInfoScanner $scanner;
     private string $testDir;
 
     protected function setUp(): void
     {
-        $this->scanner = new SecurityScanner();
-        $this->testDir = sys_get_temp_dir() . '/security-scanner-test-' . uniqid();
+        $this->scanner = new ContactInfoScanner();
+        $this->testDir = sys_get_temp_dir() . '/contact-info-scanner-test-' . uniqid();
         mkdir($this->testDir, 0777, true);
     }
 
@@ -40,7 +40,7 @@ class SecurityScannerTest extends TestCase
     }
 
     /**
-     * Test that SecurityScanner implements ToolScannerInterface.
+     * Test that ContactInfoScanner implements ToolScannerInterface.
      */
     public function testImplementsToolScannerInterface(): void
     {
@@ -52,7 +52,7 @@ class SecurityScannerTest extends TestCase
      */
     public function testGetToolName(): void
     {
-        $this->assertEquals('security-header', $this->scanner->getToolName());
+        $this->assertEquals('contact-info', $this->scanner->getToolName());
     }
 
     /**
@@ -67,16 +67,20 @@ class SecurityScannerTest extends TestCase
 <?php
 /**
  * Plugin Name: My Plugin
- * Security: security@example.com
+ * Author: John Doe
+ * Author URI: https://example.com
+ * Support: support@example.com
  */
 PHP);
 
         $target = ScanTarget::fromDirectory($pluginDir);
         $result = $this->scanner->scan($target);
 
-        $this->assertInstanceOf(SecurityResult::class, $result);
+        $this->assertInstanceOf(ContactInfoResult::class, $result);
         $this->assertTrue($result->success);
-        $this->assertEquals('security@example.com', $result->headerContact);
+        $this->assertEquals('John Doe', $result->publisherName);
+        $this->assertEquals('https://example.com', $result->publisherUri);
+        $this->assertEquals('support@example.com', $result->supportHeaderContact);
     }
 
     /**
@@ -121,9 +125,9 @@ PHP);
     }
 
     /**
-     * Test scanning a plugin with security header.
+     * Test scanning a plugin with all contact headers.
      */
-    public function testScanPluginWithSecurityHeader(): void
+    public function testScanPluginWithAllHeaders(): void
     {
         $pluginDir = $this->testDir . '/my-plugin';
         mkdir($pluginDir);
@@ -134,22 +138,28 @@ PHP);
  * Plugin Name: My Plugin
  * Description: A test plugin
  * Version: 1.0.0
- * Security: security@example.com
+ * Author: John Doe
+ * Author URI: https://johndoe.com
+ * Plugin URI: https://example.com/my-plugin
+ * Support: support@example.com
  */
 PHP);
 
         $result = $this->scanner->scanDirectory($pluginDir);
 
         $this->assertTrue($result->success);
-        $this->assertEquals('security@example.com', $result->headerContact);
+        $this->assertEquals('John Doe', $result->publisherName);
+        $this->assertEquals('https://johndoe.com', $result->publisherUri);
+        $this->assertEquals('https://example.com/my-plugin', $result->projectUri);
+        $this->assertEquals('support@example.com', $result->supportHeaderContact);
         $this->assertEquals('my-plugin.php', $result->headerFile);
         $this->assertEquals('plugin', $result->packageType);
     }
 
     /**
-     * Test scanning a plugin with security URL header.
+     * Test scanning a plugin with support URL header.
      */
-    public function testScanPluginWithSecurityUrlHeader(): void
+    public function testScanPluginWithSupportUrlHeader(): void
     {
         $pluginDir = $this->testDir . '/my-plugin';
         mkdir($pluginDir);
@@ -158,20 +168,21 @@ PHP);
 <?php
 /**
  * Plugin Name: My Plugin
- * Security: https://example.com/security
+ * Author: John Doe
+ * Support: https://example.com/support
  */
 PHP);
 
         $result = $this->scanner->scanDirectory($pluginDir);
 
         $this->assertTrue($result->success);
-        $this->assertEquals('https://example.com/security', $result->headerContact);
+        $this->assertEquals('https://example.com/support', $result->supportHeaderContact);
     }
 
     /**
-     * Test scanning a plugin without security header.
+     * Test scanning a plugin without any contact headers.
      */
-    public function testScanPluginWithoutSecurityHeader(): void
+    public function testScanPluginWithoutContactHeaders(): void
     {
         $pluginDir = $this->testDir . '/my-plugin';
         mkdir($pluginDir);
@@ -187,15 +198,68 @@ PHP);
         $result = $this->scanner->scanDirectory($pluginDir);
 
         $this->assertTrue($result->success);
-        $this->assertNull($result->headerContact);
+        $this->assertNull($result->publisherName);
+        $this->assertNull($result->publisherUri);
+        $this->assertNull($result->supportHeaderContact);
         $this->assertFalse($result->passes());
         $this->assertTrue($result->hasIssues());
     }
 
     /**
-     * Test scanning a theme with security header.
+     * Test scanning a plugin with just Author (publisher name only, no email).
      */
-    public function testScanThemeWithSecurityHeader(): void
+    public function testScanPluginWithAuthorOnlyNoEmail(): void
+    {
+        $pluginDir = $this->testDir . '/my-plugin';
+        mkdir($pluginDir);
+
+        file_put_contents($pluginDir . '/my-plugin.php', <<<'PHP'
+<?php
+/**
+ * Plugin Name: My Plugin
+ * Author: Jane Doe
+ */
+PHP);
+
+        $result = $this->scanner->scanDirectory($pluginDir);
+
+        $this->assertTrue($result->success);
+        $this->assertEquals('Jane Doe', $result->publisherName);
+        $this->assertNull($result->publisherUri);
+        $this->assertTrue($result->hasPublisherInfo());
+        $this->assertFalse($result->hasEmail());
+        $this->assertFalse($result->passes());
+    }
+
+    /**
+     * Test scanning a plugin with Author and email passes.
+     */
+    public function testScanPluginWithAuthorAndEmailPasses(): void
+    {
+        $pluginDir = $this->testDir . '/my-plugin';
+        mkdir($pluginDir);
+
+        file_put_contents($pluginDir . '/my-plugin.php', <<<'PHP'
+<?php
+/**
+ * Plugin Name: My Plugin
+ * Author: Jane Doe
+ * Support: jane@example.com
+ */
+PHP);
+
+        $result = $this->scanner->scanDirectory($pluginDir);
+
+        $this->assertTrue($result->success);
+        $this->assertEquals('Jane Doe', $result->publisherName);
+        $this->assertTrue($result->hasEmail());
+        $this->assertTrue($result->passes());
+    }
+
+    /**
+     * Test scanning a theme with contact headers.
+     */
+    public function testScanThemeWithContactHeaders(): void
     {
         $themeDir = $this->testDir . '/my-theme';
         mkdir($themeDir);
@@ -204,21 +268,27 @@ PHP);
 /*
 Theme Name: My Theme
 Description: A test theme
-Security: security@example.com
+Author: Theme Author
+Author URI: https://themeauthor.com
+Theme URI: https://example.com/my-theme
+Support: support@themeauthor.com
 */
 CSS);
 
         $result = $this->scanner->scanDirectory($themeDir);
 
         $this->assertTrue($result->success);
-        $this->assertEquals('security@example.com', $result->headerContact);
+        $this->assertEquals('Theme Author', $result->publisherName);
+        $this->assertEquals('https://themeauthor.com', $result->publisherUri);
+        $this->assertEquals('https://example.com/my-theme', $result->projectUri);
+        $this->assertEquals('support@themeauthor.com', $result->supportHeaderContact);
         $this->assertEquals('theme', $result->packageType);
     }
 
     /**
-     * Test scanning with security.md file.
+     * Test scanning with SUPPORT.md file.
      */
-    public function testScanWithSecurityMd(): void
+    public function testScanWithSupportMd(): void
     {
         $pluginDir = $this->testDir . '/my-plugin';
         mkdir($pluginDir);
@@ -227,28 +297,29 @@ CSS);
 <?php
 /**
  * Plugin Name: My Plugin
- * Security: security@example.com
+ * Author: John Doe
+ * Support: support@example.com
  */
 PHP);
 
-        file_put_contents($pluginDir . '/SECURITY.md', <<<'MD'
-# Security Policy
+        file_put_contents($pluginDir . '/SUPPORT.md', <<<'MD'
+# Support
 
-To report a vulnerability, please contact security@example.com.
+For help with this plugin, please contact support@example.com.
 MD);
 
         $result = $this->scanner->scanDirectory($pluginDir);
 
         $this->assertTrue($result->success);
-        $this->assertTrue($result->hasSecurityMd);
-        $this->assertEquals('security@example.com', $result->securityMdContact);
+        $this->assertTrue($result->hasSupportMd);
+        $this->assertEquals('support@example.com', $result->supportMdContact);
         $this->assertTrue($result->isConsistent);
     }
 
     /**
-     * Test scanning with security.txt file.
+     * Test scanning with inconsistent support contacts.
      */
-    public function testScanWithSecurityTxt(): void
+    public function testScanWithInconsistentSupportContacts(): void
     {
         $pluginDir = $this->testDir . '/my-plugin';
         mkdir($pluginDir);
@@ -257,41 +328,13 @@ MD);
 <?php
 /**
  * Plugin Name: My Plugin
- * Security: security@example.com
+ * Author: John Doe
+ * Support: support@example.com
  */
 PHP);
 
-        file_put_contents($pluginDir . '/security.txt', <<<'TXT'
-Contact: security@example.com
-Expires: 2030-01-01T00:00:00.000Z
-TXT);
-
-        $result = $this->scanner->scanDirectory($pluginDir);
-
-        $this->assertTrue($result->success);
-        $this->assertTrue($result->hasSecurityTxt);
-        $this->assertEquals('security@example.com', $result->securityTxtContact);
-        $this->assertTrue($result->isConsistent);
-    }
-
-    /**
-     * Test scanning with inconsistent security contacts.
-     */
-    public function testScanWithInconsistentContacts(): void
-    {
-        $pluginDir = $this->testDir . '/my-plugin';
-        mkdir($pluginDir);
-
-        file_put_contents($pluginDir . '/my-plugin.php', <<<'PHP'
-<?php
-/**
- * Plugin Name: My Plugin
- * Security: security@example.com
- */
-PHP);
-
-        file_put_contents($pluginDir . '/SECURITY.md', <<<'MD'
-# Security
+        file_put_contents($pluginDir . '/SUPPORT.md', <<<'MD'
+# Support
 
 Contact: other@example.com
 MD);
@@ -318,20 +361,22 @@ MD);
 <?php
 /**
  * Plugin Name: My Plugin
- * Security: security@example.com
+ * Author: John Doe
+ * Author URI: https://example.com
  */
 PHP);
 
         $result = $this->scanner->scanDirectory($extractDir);
 
         $this->assertTrue($result->success);
-        $this->assertEquals('security@example.com', $result->headerContact);
+        $this->assertEquals('John Doe', $result->publisherName);
+        $this->assertEquals('https://example.com', $result->publisherUri);
     }
 
     /**
      * Test scanning returns correct result instance.
      */
-    public function testScanReturnsSecurityResult(): void
+    public function testScanReturnsContactInfoResult(): void
     {
         $pluginDir = $this->testDir . '/my-plugin';
         mkdir($pluginDir);
@@ -345,13 +390,13 @@ PHP);
 
         $result = $this->scanner->scanDirectory($pluginDir);
 
-        $this->assertInstanceOf(SecurityResult::class, $result);
+        $this->assertInstanceOf(ContactInfoResult::class, $result);
     }
 
     /**
-     * Test security.md with URL contact.
+     * Test SUPPORT.md with URL contact.
      */
-    public function testSecurityMdWithUrlContact(): void
+    public function testSupportMdWithUrlContact(): void
     {
         $pluginDir = $this->testDir . '/my-plugin';
         mkdir($pluginDir);
@@ -360,21 +405,22 @@ PHP);
 <?php
 /**
  * Plugin Name: My Plugin
- * Security: https://example.com/security-report
+ * Author: John Doe
+ * Support: https://example.com/support-forum
  */
 PHP);
 
-        file_put_contents($pluginDir . '/SECURITY.md', <<<'MD'
-# Security
+        file_put_contents($pluginDir . '/SUPPORT.md', <<<'MD'
+# Support
 
-Report vulnerabilities at https://example.com/security-report
+Get help at https://example.com/support-forum
 MD);
 
         $result = $this->scanner->scanDirectory($pluginDir);
 
         $this->assertTrue($result->success);
-        $this->assertTrue($result->hasSecurityMd);
-        $this->assertStringContainsString('example.com', $result->securityMdContact ?? '');
+        $this->assertTrue($result->hasSupportMd);
+        $this->assertStringContainsString('example.com', $result->supportMdContact ?? '');
     }
 
     /**
@@ -405,13 +451,16 @@ MD);
 <?php
 /**
  * Plugin Name: My Plugin
- * Security: security@example.com
+ * Author: John Doe
+ * Support: support@example.com
  */
 PHP);
 
-        file_put_contents($pluginDir . '/security.txt', <<<'TXT'
-Contact: mailto:security@example.com
-TXT);
+        file_put_contents($pluginDir . '/SUPPORT.md', <<<'MD'
+# Support
+
+Contact: mailto:support@example.com
+MD);
 
         $result = $this->scanner->scanDirectory($pluginDir);
 
@@ -432,7 +481,8 @@ TXT);
 <?php
 /**
  * Plugin Name: My Plugin
- * Security: main@example.com
+ * Author: Main Author
+ * Author URI: https://main.example.com
  */
 PHP);
 
@@ -441,14 +491,87 @@ PHP);
 <?php
 /**
  * Plugin Name: Other
- * Security: other@example.com
+ * Author: Other Author
+ * Author URI: https://other.example.com
  */
 PHP);
 
         $result = $this->scanner->scanDirectory($pluginDir);
 
-        $this->assertEquals('main@example.com', $result->headerContact);
+        $this->assertEquals('Main Author', $result->publisherName);
+        $this->assertEquals('https://main.example.com', $result->publisherUri);
         $this->assertEquals('my-plugin.php', $result->headerFile);
+    }
+
+    /**
+     * Test scanning plugin with Plugin URI.
+     */
+    public function testScanPluginWithPluginUri(): void
+    {
+        $pluginDir = $this->testDir . '/my-plugin';
+        mkdir($pluginDir);
+
+        file_put_contents($pluginDir . '/my-plugin.php', <<<'PHP'
+<?php
+/**
+ * Plugin Name: My Plugin
+ * Plugin URI: https://example.com/my-plugin
+ * Author: John Doe
+ */
+PHP);
+
+        $result = $this->scanner->scanDirectory($pluginDir);
+
+        $this->assertEquals('https://example.com/my-plugin', $result->projectUri);
+    }
+
+    /**
+     * Test scanning theme with Theme URI.
+     */
+    public function testScanThemeWithThemeUri(): void
+    {
+        $themeDir = $this->testDir . '/my-theme';
+        mkdir($themeDir);
+
+        file_put_contents($themeDir . '/style.css', <<<'CSS'
+/*
+Theme Name: My Theme
+Theme URI: https://example.com/my-theme
+Author: Theme Dev
+*/
+CSS);
+
+        $result = $this->scanner->scanDirectory($themeDir);
+
+        $this->assertEquals('https://example.com/my-theme', $result->projectUri);
+        $this->assertEquals('Theme Dev', $result->publisherName);
+        $this->assertEquals('theme', $result->packageType);
+    }
+
+    /**
+     * Test publisher info with Author URI only (no email, does not pass).
+     */
+    public function testPublisherInfoWithUriOnlyNoEmail(): void
+    {
+        $pluginDir = $this->testDir . '/my-plugin';
+        mkdir($pluginDir);
+
+        file_put_contents($pluginDir . '/my-plugin.php', <<<'PHP'
+<?php
+/**
+ * Plugin Name: My Plugin
+ * Author URI: https://example.com
+ */
+PHP);
+
+        $result = $this->scanner->scanDirectory($pluginDir);
+
+        $this->assertTrue($result->success);
+        $this->assertNull($result->publisherName);
+        $this->assertEquals('https://example.com', $result->publisherUri);
+        $this->assertTrue($result->hasPublisherInfo());
+        $this->assertFalse($result->hasEmail());
+        $this->assertFalse($result->passes());
     }
 
     /**
@@ -466,14 +589,42 @@ PHP);
  */
 /*
 Plugin Name: My Plugin
-Security: security@example.com
+Plugin URI: https://example.com/my-plugin
+Author: Jane Doe
+Author URI: https://janedoe.com
+Support: support@janedoe.com
 */
 PHP);
 
         $result = $this->scanner->scanDirectory($pluginDir);
 
         $this->assertTrue($result->success);
-        $this->assertEquals('security@example.com', $result->headerContact);
+        $this->assertEquals('Jane Doe', $result->publisherName);
+        $this->assertEquals('https://janedoe.com', $result->publisherUri);
+        $this->assertEquals('https://example.com/my-plugin', $result->projectUri);
+        $this->assertEquals('support@janedoe.com', $result->supportHeaderContact);
+    }
+
+    /**
+     * Test has no contact info when nothing is present.
+     */
+    public function testHasNoContactInfo(): void
+    {
+        $pluginDir = $this->testDir . '/my-plugin';
+        mkdir($pluginDir);
+
+        file_put_contents($pluginDir . '/my-plugin.php', <<<'PHP'
+<?php
+/**
+ * Plugin Name: My Plugin
+ */
+PHP);
+
+        $result = $this->scanner->scanDirectory($pluginDir);
+
+        $this->assertFalse($result->hasPublisherInfo());
+        $this->assertFalse($result->hasSupportInfo());
+        $this->assertFalse($result->hasContactInfo());
     }
 
     /**

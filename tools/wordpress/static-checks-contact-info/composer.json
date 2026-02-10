@@ -1,6 +1,6 @@
 {
-    "name": "fair-forge/static-checks-security-header",
-    "description": "Check WordPress packages for security contact headers and files",
+    "name": "fair-forge/static-checks-contact-info",
+    "description": "Check WordPress packages for publisher and support contact information",
     "type": "library",
     "license": "MIT",
     "repositories": [
@@ -16,16 +16,16 @@
     },
     "autoload": {
         "psr-4": {
-            "FairForge\\Tools\\SecurityHeader\\": "src/"
+            "FairForge\\Tools\\ContactInfo\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "FairForge\\Tools\\SecurityHeader\\Tests\\": "tests/"
+            "FairForge\\Tools\\ContactInfo\\Tests\\": "tests/"
         }
     },
     "bin": [
-        "bin/security-header"
+        "bin/contact-info"
     ],
     "require-dev": {
         "phpunit/phpunit": "^10.0",
