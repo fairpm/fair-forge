@@ -3,6 +3,8 @@
     "description": "Check WordPress packages for security contact headers and files",
     "type": "library",
     "license": "MIT",
+    "minimum-stability": "dev",
+    "prefer-stable": true,
     "repositories": [
         {
             "type": "path",

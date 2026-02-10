@@ -6,6 +6,7 @@ A PHP library and CLI tool for checking WordPress plugins and themes for **publi
 
 - **Check publisher headers** (Author, Author URI) in the main plugin/theme file comment block
 - **Check project URI** (Plugin URI / Theme URI)
+- **Parse readme.txt** for contributors and donate link via `fairpm/did-manager`
 - **Require at least one email** address in publisher contact fields
 - **Download and scan** ZIP files from URLs (e.g., wordpress.org, github)
 - **Scan local ZIP files** or directories
@@ -31,6 +32,21 @@ The main plugin file (`plugin-name.php`) or theme file (`style.css`) should cont
  * Plugin URI: https://example.com/my-plugin
  */
 ```
+
+### readme.txt Contributors & Donate Link
+
+The `readme.txt` file can list contributors (WordPress.org usernames) and a donate link:
+
+```
+=== My Plugin ===
+Contributors: johndoe, janedoe
+Donate link: https://example.com/donate
+Tags: example
+Requires at least: 5.0
+Stable tag: 1.0
+```
+
+These are parsed using the `fairpm/did-manager` library's `ReadmeParser`.
 
 ## Requirements
 
@@ -94,6 +110,8 @@ php bin/contact-info https://example.com/plugin.zip --output=results.json
     "has_publisher_uri": true,
     "has_project_uri": true,
     "has_email": true,
+    "has_readme_contributors": true,
+    "has_readme_donate_link": true,
     "issue_count": 0,
     "publisher_name": "John Doe",
     "publisher_uri": "mailto:john@johndoe.com",
@@ -107,6 +125,10 @@ php bin/contact-info https://example.com/plugin.zip --output=results.json
     },
     "project": {
       "uri": "https://example.com/my-plugin"
+    },
+    "readme": {
+      "contributors": ["johndoe", "janedoe"],
+      "donate_link": "https://example.com/donate"
     }
   },
   "issues": [],
@@ -149,10 +171,16 @@ echo "Publisher: " . $result->publisherName . "\n";
 echo "Publisher URI: " . $result->publisherUri . "\n";
 echo "Project URI: " . $result->projectUri . "\n";
 
+// readme.txt info
+echo "Contributors: " . implode(', ', $result->readmeContributors) . "\n";
+echo "Donate link: " . ($result->readmeDonateLink ?? 'None') . "\n";
+
 // Check what's present
-$result->hasPublisherInfo();   // true if Author or Author URI found
-$result->hasProjectUri();      // true if Plugin URI / Theme URI found
-$result->hasEmail();           // true if publisher URI contains an email address
+$result->hasPublisherInfo();       // true if Author or Author URI found
+$result->hasProjectUri();          // true if Plugin URI / Theme URI found
+$result->hasEmail();               // true if publisher URI or donate link contains an email
+$result->hasReadmeContributors();  // true if readme.txt lists contributors
+$result->hasReadmeDonateLink();    // true if readme.txt has a donate link
 
 // Get summary
 $summary = $result->getSummary();
@@ -210,7 +238,8 @@ composer check
 |-------|-------------|
 | Missing Author header | No `Author:` header in the main file comment block |
 | Missing Author URI header | No `Author URI:` header in the main file comment block |
-| No email address | No email address found in the publisher URI field |
+| No contributors in readme.txt | No `Contributors:` field in `readme.txt` |
+| No email address | No email address found in any contact field (publisher URI or donate link) |
 | No main file | Could not identify the main plugin or theme file |
 
 ## Related Modules

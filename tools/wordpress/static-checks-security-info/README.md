@@ -6,6 +6,7 @@ A PHP library and CLI tool for checking WordPress plugins and themes for **secur
 
 - **Check Security header** in the main plugin/theme file comment block
 - **Detect security files** (security.md, security.txt)
+- **Parse readme.txt** for a `== Security ==` section via `fairpm/did-manager`
 - **Verify consistency** between all security contact sources
 - **Download and scan** ZIP files from URLs (e.g., wordpress.org, github)
 - **Scan local ZIP files** or directories
@@ -60,6 +61,27 @@ A `security.txt` file following [RFC 9116](https://www.rfc-editor.org/rfc/rfc911
 Contact: security@example.com
 Expires: 2030-01-01T00:00:00.000Z
 ```
+
+### 4. readme.txt Security Section
+
+A `== Security ==` section inside `readme.txt`:
+
+```
+=== My Plugin ===
+Contributors: johndoe
+Tags: test
+Requires at least: 5.0
+Stable tag: 1.0
+
+== Description ==
+A great plugin.
+
+== Security ==
+Report security issues to security@example.com.
+```
+
+The readme.txt is parsed using `fairpm/did-manager`'s `ReadmeParser`.
+Custom sections like `== Security ==` are extracted automatically.
 
 ## Requirements
 
@@ -122,6 +144,7 @@ php bin/security-info https://example.com/plugin.zip --output=results.json
     "has_header": true,
     "has_security_md": true,
     "has_security_txt": true,
+    "has_readme_security_section": true,
     "is_consistent": true,
     "issue_count": 0,
     "primary_contact": "security@example.com",
@@ -140,6 +163,10 @@ php bin/security-info https://example.com/plugin.zip --output=results.json
       },
       "security_txt": {
         "exists": true,
+        "contact": "security@example.com"
+      },
+      "readme_txt": {
+        "has_security_section": true,
         "contact": "security@example.com"
       }
     },
@@ -187,10 +214,12 @@ if ($result->passes()) {
 echo "Has security header: " . ($result->hasSecurityHeader() ? 'Yes' : 'No') . "\n";
 echo "Has security.md: " . ($result->hasSecurityMd ? 'Yes' : 'No') . "\n";
 echo "Has security.txt: " . ($result->hasSecurityTxt ? 'Yes' : 'No') . "\n";
+echo "Has readme.txt security: " . ($result->hasReadmeSecuritySection() ? 'Yes' : 'No') . "\n";
 echo "Is consistent: " . ($result->isConsistent ? 'Yes' : 'No') . "\n";
 
 // Get contact information
 echo "Header contact: " . ($result->headerContact ?? 'None') . "\n";
+echo "readme.txt contact: " . ($result->readmeSecurityContact ?? 'None') . "\n";
 echo "Primary contact: " . ($result->getPrimaryContact() ?? 'None') . "\n";
 
 // Check for issues

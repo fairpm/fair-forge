@@ -10,8 +10,9 @@ use FairForge\Shared\AbstractToolResult;
  * Represents the result of a security header scan.
  *
  * Holds information about:
- * - Security header in the main plugin/theme file
+ * - Security header in the main plugin file
  * - Presence and content of security.md and security.txt files
+ * - Security section from readme.txt
  * - Consistency between the header and files
  */
 class SecurityResult extends AbstractToolResult
@@ -27,8 +28,9 @@ class SecurityResult extends AbstractToolResult
      * @param bool $isConsistent Whether all present security info is consistent
      * @param string[] $issues List of issues/warnings found
      * @param string $scannedDirectory The directory that was scanned
-     * @param string|null $packageType 'plugin' or 'theme' if detected
+     * @param string|null $packageType 'plugin' if detected
      * @param string|null $parseError Parse error message if any
+     * @param string|null $readmeSecurityContact Security contact extracted from readme.txt security section
      */
     public function __construct(
         public readonly bool $success,
@@ -43,6 +45,7 @@ class SecurityResult extends AbstractToolResult
         public readonly string $scannedDirectory,
         public readonly ?string $packageType = null,
         public readonly ?string $parseError = null,
+        public readonly ?string $readmeSecurityContact = null,
     ) {
     }
 
@@ -63,11 +66,19 @@ class SecurityResult extends AbstractToolResult
     }
 
     /**
-     * Check if security information is present (header or file).
+     * Check if security information is present (header, file, or readme section).
      */
     public function hasSecurityInfo(): bool
     {
-        return $this->hasSecurityHeader() || $this->hasSecurityFile();
+        return $this->hasSecurityHeader() || $this->hasSecurityFile() || $this->hasReadmeSecuritySection();
+    }
+
+    /**
+     * Check if readme.txt has a security section with contact info.
+     */
+    public function hasReadmeSecuritySection(): bool
+    {
+        return $this->readmeSecurityContact !== null;
     }
 
     /**
@@ -85,7 +96,8 @@ class SecurityResult extends AbstractToolResult
     {
         return $this->headerContact
             ?? $this->securityMdContact
-            ?? $this->securityTxtContact;
+            ?? $this->securityTxtContact
+            ?? $this->readmeSecurityContact;
     }
 
     /**
@@ -121,6 +133,7 @@ class SecurityResult extends AbstractToolResult
             'has_header' => $this->hasSecurityHeader(),
             'has_security_md' => $this->hasSecurityMd,
             'has_security_txt' => $this->hasSecurityTxt,
+            'has_readme_security_section' => $this->hasReadmeSecuritySection(),
             'is_consistent' => $this->isConsistent,
             'issue_count' => count($this->issues),
             'primary_contact' => $this->getPrimaryContact(),
@@ -169,6 +182,10 @@ class SecurityResult extends AbstractToolResult
                 'security_txt' => [
                     'exists' => $this->hasSecurityTxt,
                     'contact' => $this->securityTxtContact,
+                ],
+                'readme_txt' => [
+                    'has_security_section' => $this->hasReadmeSecuritySection(),
+                    'contact' => $this->readmeSecurityContact,
                 ],
             ],
             'consistency' => [

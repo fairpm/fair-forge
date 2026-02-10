@@ -206,27 +206,19 @@ PHP);
     /**
      * Test scanning a theme with Support header.
      */
-    public function testScanThemeWithSupportHeader(): void
+    public function testScanNonPluginDirectoryReturnsNoMainFile(): void
     {
-        $themeDir = $this->testDir . '/my-theme';
-        mkdir($themeDir);
+        $emptyDir = $this->testDir . '/not-a-plugin';
+        mkdir($emptyDir);
 
-        file_put_contents($themeDir . '/style.css', <<<'CSS'
-/*
-Theme Name: My Theme
-Description: A test theme
-Author: Theme Author
-Support: support@themeauthor.com
-*/
-CSS);
+        file_put_contents($emptyDir . '/readme.txt', 'Not a plugin');
 
-        $result = $this->scanner->scanDirectory($themeDir);
+        $result = $this->scanner->scanDirectory($emptyDir);
 
         $this->assertTrue($result->success);
-        $this->assertEquals('support@themeauthor.com', $result->supportHeaderContact);
-        $this->assertEquals('theme', $result->packageType);
-        $this->assertTrue($result->hasSupportHeader());
-        $this->assertTrue($result->passes());
+        $this->assertNull($result->supportHeaderContact);
+        $this->assertNull($result->packageType);
+        $this->assertFalse($result->passes());
     }
 
     /**
@@ -653,6 +645,325 @@ PHP);
         $result = $this->scanner->scanDirectory($pluginDir);
 
         $this->assertFalse($result->hasEmail());
+    }
+
+    // -------------------------------------------------------
+    // readme.txt integration tests
+    // -------------------------------------------------------
+
+    /**
+     * Test that readme.txt support section with email is extracted.
+     */
+    public function testReadmeSupportSectionWithEmail(): void
+    {
+        $pluginDir = $this->testDir . '/my-plugin';
+        mkdir($pluginDir);
+
+        file_put_contents($pluginDir . '/my-plugin.php', <<<'PHP'
+<?php
+/**
+ * Plugin Name: My Plugin
+ * Support: support@example.com
+ */
+PHP);
+
+        file_put_contents($pluginDir . '/readme.txt', <<<'TXT'
+=== My Plugin ===
+Contributors: johndoe
+Tags: test
+Requires at least: 5.0
+Tested up to: 6.4
+Stable tag: 1.0
+License: GPLv2
+
+A test plugin.
+
+== Description ==
+Full description here.
+
+== Support ==
+For support requests, email support@example.com or visit our forums.
+TXT);
+
+        $result = $this->scanner->scanDirectory($pluginDir);
+
+        $this->assertTrue($result->hasReadmeSupportSection());
+        $this->assertEquals('support@example.com', $result->readmeSupportContact);
+    }
+
+    /**
+     * Test that readme.txt support section with URL is extracted.
+     */
+    public function testReadmeSupportSectionWithUrl(): void
+    {
+        $pluginDir = $this->testDir . '/my-plugin';
+        mkdir($pluginDir);
+
+        file_put_contents($pluginDir . '/my-plugin.php', <<<'PHP'
+<?php
+/**
+ * Plugin Name: My Plugin
+ * Support: https://example.com/support
+ */
+PHP);
+
+        file_put_contents($pluginDir . '/readme.txt', <<<'TXT'
+=== My Plugin ===
+Contributors: johndoe
+Tags: test
+Requires at least: 5.0
+Tested up to: 6.4
+Stable tag: 1.0
+License: GPLv2
+
+A test plugin.
+
+== Description ==
+Full description here.
+
+== Support ==
+Visit https://example.com/support for help.
+TXT);
+
+        $result = $this->scanner->scanDirectory($pluginDir);
+
+        $this->assertTrue($result->hasReadmeSupportSection());
+        $this->assertEquals('https://example.com/support', $result->readmeSupportContact);
+    }
+
+    /**
+     * Test that hasSupportInfo is true when only readme.txt has support section.
+     */
+    public function testHasSupportInfoFromReadmeOnly(): void
+    {
+        $pluginDir = $this->testDir . '/my-plugin';
+        mkdir($pluginDir);
+
+        file_put_contents($pluginDir . '/my-plugin.php', <<<'PHP'
+<?php
+/**
+ * Plugin Name: My Plugin
+ */
+PHP);
+
+        file_put_contents($pluginDir . '/readme.txt', <<<'TXT'
+=== My Plugin ===
+Contributors: johndoe
+Tags: test
+Requires at least: 5.0
+Tested up to: 6.4
+Stable tag: 1.0
+License: GPLv2
+
+A test plugin.
+
+== Description ==
+Full description here.
+
+== Support ==
+For support email help@example.com
+TXT);
+
+        $result = $this->scanner->scanDirectory($pluginDir);
+
+        $this->assertTrue($result->hasSupportInfo());
+        $this->assertTrue($result->hasReadmeSupportSection());
+        $this->assertEquals('help@example.com', $result->readmeSupportContact);
+    }
+
+    /**
+     * Test readme.txt support contact included in consistency check.
+     */
+    public function testReadmeSupportConsistencyWithHeader(): void
+    {
+        $pluginDir = $this->testDir . '/my-plugin';
+        mkdir($pluginDir);
+
+        file_put_contents($pluginDir . '/my-plugin.php', <<<'PHP'
+<?php
+/**
+ * Plugin Name: My Plugin
+ * Support: support@example.com
+ */
+PHP);
+
+        file_put_contents($pluginDir . '/readme.txt', <<<'TXT'
+=== My Plugin ===
+Contributors: johndoe
+Tags: test
+Requires at least: 5.0
+Tested up to: 6.4
+Stable tag: 1.0
+License: GPLv2
+
+A test plugin.
+
+== Description ==
+Full description here.
+
+== Support ==
+Contact support@example.com for help.
+TXT);
+
+        $result = $this->scanner->scanDirectory($pluginDir);
+
+        $this->assertTrue($result->isConsistent);
+    }
+
+    /**
+     * Test readme.txt support contact inconsistency with header.
+     */
+    public function testReadmeSupportInconsistencyWithHeader(): void
+    {
+        $pluginDir = $this->testDir . '/my-plugin';
+        mkdir($pluginDir);
+
+        file_put_contents($pluginDir . '/my-plugin.php', <<<'PHP'
+<?php
+/**
+ * Plugin Name: My Plugin
+ * Support: support@example.com
+ */
+PHP);
+
+        file_put_contents($pluginDir . '/readme.txt', <<<'TXT'
+=== My Plugin ===
+Contributors: johndoe
+Tags: test
+Requires at least: 5.0
+Tested up to: 6.4
+Stable tag: 1.0
+License: GPLv2
+
+A test plugin.
+
+== Description ==
+Full description here.
+
+== Support ==
+Contact different@other.com for help.
+TXT);
+
+        $result = $this->scanner->scanDirectory($pluginDir);
+
+        $this->assertFalse($result->isConsistent);
+    }
+
+    /**
+     * Test no readme.txt support section results in null contact.
+     */
+    public function testNoReadmeSupportSection(): void
+    {
+        $pluginDir = $this->testDir . '/my-plugin';
+        mkdir($pluginDir);
+
+        file_put_contents($pluginDir . '/my-plugin.php', <<<'PHP'
+<?php
+/**
+ * Plugin Name: My Plugin
+ * Support: support@example.com
+ */
+PHP);
+
+        file_put_contents($pluginDir . '/readme.txt', <<<'TXT'
+=== My Plugin ===
+Contributors: johndoe
+Tags: test
+Requires at least: 5.0
+Tested up to: 6.4
+Stable tag: 1.0
+License: GPLv2
+
+A test plugin.
+
+== Description ==
+Full description here.
+TXT);
+
+        $result = $this->scanner->scanDirectory($pluginDir);
+
+        $this->assertFalse($result->hasReadmeSupportSection());
+        $this->assertNull($result->readmeSupportContact);
+    }
+
+    /**
+     * Test readme support contact in getData output.
+     */
+    public function testReadmeSupportFieldsInGetData(): void
+    {
+        $pluginDir = $this->testDir . '/my-plugin';
+        mkdir($pluginDir);
+
+        file_put_contents($pluginDir . '/my-plugin.php', <<<'PHP'
+<?php
+/**
+ * Plugin Name: My Plugin
+ * Support: support@example.com
+ */
+PHP);
+
+        file_put_contents($pluginDir . '/readme.txt', <<<'TXT'
+=== My Plugin ===
+Contributors: johndoe
+Tags: test
+Requires at least: 5.0
+Tested up to: 6.4
+Stable tag: 1.0
+License: GPLv2
+
+A test plugin.
+
+== Description ==
+Full description here.
+
+== Support ==
+Email support@example.com for help.
+TXT);
+
+        $result = $this->scanner->scanDirectory($pluginDir);
+        $data = $result->getData();
+
+        $this->assertArrayHasKey('readme_txt', $data['support']);
+        $this->assertTrue($data['support']['readme_txt']['has_support_section']);
+        $this->assertEquals('support@example.com', $data['support']['readme_txt']['contact']);
+    }
+
+    /**
+     * Test getPrimarySupportInfo falls through to readme contact.
+     */
+    public function testGetPrimarySupportInfoFallsToReadme(): void
+    {
+        $pluginDir = $this->testDir . '/my-plugin';
+        mkdir($pluginDir);
+
+        file_put_contents($pluginDir . '/my-plugin.php', <<<'PHP'
+<?php
+/**
+ * Plugin Name: My Plugin
+ */
+PHP);
+
+        file_put_contents($pluginDir . '/readme.txt', <<<'TXT'
+=== My Plugin ===
+Contributors: johndoe
+Tags: test
+Requires at least: 5.0
+Tested up to: 6.4
+Stable tag: 1.0
+License: GPLv2
+
+A test plugin.
+
+== Description ==
+Full description here.
+
+== Support ==
+Contact readme-support@example.com for help.
+TXT);
+
+        $result = $this->scanner->scanDirectory($pluginDir);
+
+        $this->assertEquals('readme-support@example.com', $result->getPrimarySupportInfo());
     }
 
     /**

@@ -5,54 +5,32 @@ declare(strict_types=1);
 namespace FairForge\Tools\ContactInfo;
 
 use FairForge\Shared\AbstractToolScanner;
-use FairForge\Shared\ZipHandler;
+use FairForge\Shared\PluginMetadataReader;
 
 /**
  * WordPress Contact Info Scanner.
  *
- * Scans WordPress plugins and themes for publisher contact information.
+ * Scans WordPress plugins for publisher contact information using the
+ * fairpm/did-manager PluginHeaderParser and ReadmeParser via the shared
+ * PluginMetadataReader.
  *
  * Checks for:
- * - Author: header in the main plugin/theme file comment block (publisher name)
- * - Author URI: header in the main plugin/theme file comment block (publisher URL)
- * - Plugin URI: / Theme URI: header (project URL)
+ * - Author: header (publisher name)
+ * - Author URI: header (publisher URL)
+ * - Plugin URI: header (project URL)
+ * - readme.txt contributors and donate link as supplementary sources
  */
 class ContactInfoScanner extends AbstractToolScanner
 {
-    /**
-     * Pattern to match Author header in a comment block.
-     * Matches: Author: John Doe
-     * Does NOT match: Author URI: ...
-     */
-    private const AUTHOR_HEADER_PATTERN = '/^\s*\*?\s*Author:\s*(.+?)\s*$/mi';
+    private PluginMetadataReader $metadataReader;
 
-    /**
-     * Pattern to match Author URI header in a comment block.
-     * Matches: Author URI: https://example.com
-     */
-    private const AUTHOR_URI_HEADER_PATTERN = '/^\s*\*?\s*Author URI:\s*(.+?)\s*$/mi';
-
-    /**
-     * Pattern to match Plugin URI header in a comment block.
-     * Matches: Plugin URI: https://example.com/plugin
-     */
-    private const PLUGIN_URI_HEADER_PATTERN = '/^\s*\*?\s*Plugin URI:\s*(.+?)\s*$/mi';
-
-    /**
-     * Pattern to match Theme URI header in a comment block.
-     * Matches: Theme URI: https://example.com/theme
-     */
-    private const THEME_URI_HEADER_PATTERN = '/^\s*\*?\s*Theme URI:\s*(.+?)\s*$/mi';
-
-    /**
-     * Common plugin header patterns to identify the main file.
-     */
-    private const PLUGIN_HEADER_PATTERN = '/^\s*\*?\s*Plugin Name:\s*.+/mi';
-
-    /**
-     * Common theme header patterns to identify style.css.
-     */
-    private const THEME_HEADER_PATTERN = '/^\s*Theme Name:\s*.+/mi';
+    public function __construct(
+        ?\FairForge\Shared\ZipHandler $zipHandler = null,
+        ?PluginMetadataReader $metadataReader = null,
+    ) {
+        parent::__construct($zipHandler);
+        $this->metadataReader = $metadataReader ?? new PluginMetadataReader();
+    }
 
     /**
      * {@inheritDoc}
@@ -87,34 +65,39 @@ class ContactInfoScanner extends AbstractToolScanner
         // Find the actual package directory (might be nested)
         $packageDir = $this->findPackageDirectory($directory);
 
-        // Detect package type and find main file
-        $mainFileInfo = $this->findMainFile($packageDir);
-        $packageType = $mainFileInfo['type'];
-        $mainFile = $mainFileInfo['file'];
+        // Use the did-manager parser to find the main file and parse headers
+        $mainFile = $this->metadataReader->findMainFile($packageDir);
+        $packageType = $mainFile !== null ? 'plugin' : null;
 
-        // Extract headers from main file
+        // Extract headers from the parsed data
         $publisherName = null;
         $publisherUri = null;
         $projectUri = null;
         $headerFile = null;
 
         if ($mainFile !== null) {
-            $headers = $this->extractHeaders($mainFile, $packageType);
-            $publisherName = $headers['author'];
-            $publisherUri = $headers['author_uri'];
-            $projectUri = $headers['project_uri'];
+            $headers = $this->metadataReader->parseFile($mainFile);
+            $publisherName = $headers['author'] ?? null;
+            $publisherUri = $headers['author_uri'] ?? null;
+            $projectUri = $headers['plugin_uri'] ?? null;
 
             if ($publisherName !== null || $publisherUri !== null) {
                 $headerFile = $this->getRelativePath($packageDir, $mainFile);
             }
         }
 
+        // Parse readme.txt for supplementary contributor and donate info
+        $readmeData = $this->metadataReader->parseReadme($packageDir);
+        $readmeContributors = $readmeData['header']['contributors'] ?? [];
+        $readmeDonateLink = $readmeData['header']['donate_link'] ?? null;
+
         // Gather issues
         $issues = $this->gatherIssues(
             $publisherName,
             $publisherUri,
             $mainFile,
-            $packageType,
+            $readmeContributors,
+            $readmeDonateLink,
         );
 
         return new ContactInfoResult(
@@ -126,6 +109,8 @@ class ContactInfoScanner extends AbstractToolScanner
             issues: $issues,
             scannedDirectory: $packageDir,
             packageType: $packageType,
+            readmeContributors: $readmeContributors,
+            readmeDonateLink: $readmeDonateLink,
         );
     }
 
@@ -134,7 +119,6 @@ class ContactInfoScanner extends AbstractToolScanner
      */
     private function findPackageDirectory(string $directory): string
     {
-        // Check if there's exactly one subdirectory (common for ZIP extracts)
         $items = array_diff(scandir($directory) ?: [], ['.', '..']);
 
         if (count($items) === 1) {
@@ -148,141 +132,22 @@ class ContactInfoScanner extends AbstractToolScanner
     }
 
     /**
-     * Find the main plugin or theme file.
-     *
-     * @return array{type: string|null, file: string|null}
-     */
-    private function findMainFile(string $directory): array
-    {
-        // First check for theme (style.css in root)
-        $styleCss = $directory . '/style.css';
-        if (file_exists($styleCss)) {
-            $content = file_get_contents($styleCss);
-            if ($content !== false && preg_match(self::THEME_HEADER_PATTERN, $content)) {
-                return ['type' => 'theme', 'file' => $styleCss];
-            }
-        }
-
-        // Look for plugin files
-        $pluginFiles = $this->findPluginFiles($directory);
-
-        // First, check for a file with the same name as the directory
-        $dirName = basename($directory);
-        $expectedFile = $directory . '/' . $dirName . '.php';
-        if (in_array($expectedFile, $pluginFiles, true)) {
-            return ['type' => 'plugin', 'file' => $expectedFile];
-        }
-
-        // Otherwise, return the first plugin file found
-        if (!empty($pluginFiles)) {
-            return ['type' => 'plugin', 'file' => $pluginFiles[0]];
-        }
-
-        return ['type' => null, 'file' => null];
-    }
-
-    /**
-     * Find all PHP files with plugin headers in the root directory.
-     *
-     * @return string[]
-     */
-    private function findPluginFiles(string $directory): array
-    {
-        $pluginFiles = [];
-        $files = glob($directory . '/*.php') ?: [];
-
-        foreach ($files as $file) {
-            $content = file_get_contents($file);
-            if ($content === false) {
-                continue;
-            }
-
-            // Check if it has a plugin header
-            if (preg_match(self::PLUGIN_HEADER_PATTERN, $content)) {
-                $pluginFiles[] = $file;
-            }
-        }
-
-        return $pluginFiles;
-    }
-
-    /**
-     * Extract all publisher-related headers from a file.
-     *
-     * @return array{author: string|null, author_uri: string|null, project_uri: string|null}
-     */
-    private function extractHeaders(string $filePath, ?string $packageType): array
-    {
-        $content = file_get_contents($filePath);
-        if ($content === false) {
-            return ['author' => null, 'author_uri' => null, 'project_uri' => null];
-        }
-
-        // Find the comment block that contains the Plugin Name / Theme Name header.
-        // Some plugins (e.g. Akismet) have a docblock before the actual plugin
-        // header, so we cannot just grab the first comment block.
-        $headerPattern = $packageType === 'theme'
-            ? self::THEME_HEADER_PATTERN
-            : self::PLUGIN_HEADER_PATTERN;
-
-        if (!preg_match_all('/\/\*\*?.*?\*\//s', $content, $allBlocks)) {
-            return ['author' => null, 'author_uri' => null, 'project_uri' => null];
-        }
-
-        $commentBlock = null;
-        foreach ($allBlocks[0] as $block) {
-            if (preg_match($headerPattern, $block)) {
-                $commentBlock = $block;
-                break;
-            }
-        }
-
-        if ($commentBlock === null) {
-            return ['author' => null, 'author_uri' => null, 'project_uri' => null];
-        }
-
-        $author = null;
-        $authorUri = null;
-        $projectUri = null;
-
-        if (preg_match(self::AUTHOR_HEADER_PATTERN, $commentBlock, $m)) {
-            $author = trim($m[1]);
-        }
-
-        if (preg_match(self::AUTHOR_URI_HEADER_PATTERN, $commentBlock, $m)) {
-            $authorUri = trim($m[1]);
-        }
-
-        // Project URI: use Plugin URI for plugins, Theme URI for themes
-        $projectUriPattern = $packageType === 'theme'
-            ? self::THEME_URI_HEADER_PATTERN
-            : self::PLUGIN_URI_HEADER_PATTERN;
-        if (preg_match($projectUriPattern, $commentBlock, $m)) {
-            $projectUri = trim($m[1]);
-        }
-
-        return [
-            'author' => $author,
-            'author_uri' => $authorUri,
-            'project_uri' => $projectUri,
-        ];
-    }
-
-    /**
      * Gather issues based on the scan results.
      *
+     * @param string[] $readmeContributors
      * @return string[]
      */
     private function gatherIssues(
         ?string $publisherName,
         ?string $publisherUri,
         ?string $mainFile,
-        ?string $packageType,
+        array $readmeContributors,
+        ?string $readmeDonateLink,
     ): array {
         $issues = [];
 
         if ($mainFile === null) {
-            $issues[] = 'Could not identify the main plugin or theme file';
+            $issues[] = 'Could not identify the main plugin file';
         } else {
             if ($publisherName === null) {
                 $issues[] = 'Missing Author header in the main file comment block';
@@ -293,9 +158,13 @@ class ContactInfoScanner extends AbstractToolScanner
             }
         }
 
+        if (empty($readmeContributors)) {
+            $issues[] = 'No contributors listed in readme.txt';
+        }
+
         // Check that at least one field contains an email address
         $hasEmail = false;
-        $emailFields = [$publisherUri];
+        $emailFields = [$publisherUri, $readmeDonateLink];
         foreach ($emailFields as $value) {
             if ($value !== null && preg_match('/[\w.+-]+@[\w.-]+\.[a-zA-Z]{2,}/', $value)) {
                 $hasEmail = true;

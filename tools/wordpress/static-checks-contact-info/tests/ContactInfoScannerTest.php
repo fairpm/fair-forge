@@ -228,32 +228,6 @@ PHP);
         $this->assertTrue($result->passes());
     }
 
-    /**
-     * Test scanning a theme with publisher headers.
-     */
-    public function testScanThemeWithPublisherHeaders(): void
-    {
-        $themeDir = $this->testDir . '/my-theme';
-        mkdir($themeDir);
-
-        file_put_contents($themeDir . '/style.css', <<<'CSS'
-/*
-Theme Name: My Theme
-Description: A test theme
-Author: Theme Author
-Author URI: mailto:author@themeauthor.com
-Theme URI: https://example.com/my-theme
-*/
-CSS);
-
-        $result = $this->scanner->scanDirectory($themeDir);
-
-        $this->assertTrue($result->success);
-        $this->assertEquals('Theme Author', $result->publisherName);
-        $this->assertEquals('mailto:author@themeauthor.com', $result->publisherUri);
-        $this->assertEquals('https://example.com/my-theme', $result->projectUri);
-        $this->assertEquals('theme', $result->packageType);
-    }
 
     /**
      * Test scanning directory with nested plugin directory (ZIP extract).
@@ -374,28 +348,6 @@ PHP);
         $this->assertEquals('https://example.com/my-plugin', $result->projectUri);
     }
 
-    /**
-     * Test scanning theme with Theme URI.
-     */
-    public function testScanThemeWithThemeUri(): void
-    {
-        $themeDir = $this->testDir . '/my-theme';
-        mkdir($themeDir);
-
-        file_put_contents($themeDir . '/style.css', <<<'CSS'
-/*
-Theme Name: My Theme
-Theme URI: https://example.com/my-theme
-Author: Theme Dev
-*/
-CSS);
-
-        $result = $this->scanner->scanDirectory($themeDir);
-
-        $this->assertEquals('https://example.com/my-theme', $result->projectUri);
-        $this->assertEquals('Theme Dev', $result->publisherName);
-        $this->assertEquals('theme', $result->packageType);
-    }
 
     /**
      * Test publisher info with Author URI only (no email, does not pass).
@@ -470,6 +422,275 @@ PHP);
         $result = $this->scanner->scanDirectory($pluginDir);
 
         $this->assertFalse($result->hasPublisherInfo());
+    }
+
+
+    // -------------------------------------------------------
+    // readme.txt integration tests
+    // -------------------------------------------------------
+
+    /**
+     * Test that readme.txt contributors are extracted.
+     */
+    public function testReadmeContributorsExtracted(): void
+    {
+        $pluginDir = $this->testDir . '/my-plugin';
+        mkdir($pluginDir);
+
+        file_put_contents($pluginDir . '/my-plugin.php', <<<'PHP'
+<?php
+/**
+ * Plugin Name: My Plugin
+ * Author: John Doe
+ * Author URI: mailto:john@example.com
+ */
+PHP);
+
+        file_put_contents($pluginDir . '/readme.txt', <<<'TXT'
+=== My Plugin ===
+Contributors: johndoe, janedoe
+Donate link: https://example.com/donate
+Tags: test
+Requires at least: 5.0
+Tested up to: 6.4
+Stable tag: 1.0
+License: GPLv2
+
+A test plugin.
+
+== Description ==
+Full description here.
+TXT);
+
+        $result = $this->scanner->scanDirectory($pluginDir);
+
+        $this->assertTrue($result->hasReadmeContributors());
+        $this->assertContains('johndoe', $result->readmeContributors);
+        $this->assertContains('janedoe', $result->readmeContributors);
+    }
+
+    /**
+     * Test that readme.txt donate link is extracted.
+     */
+    public function testReadmeDonateLinExtracted(): void
+    {
+        $pluginDir = $this->testDir . '/my-plugin';
+        mkdir($pluginDir);
+
+        file_put_contents($pluginDir . '/my-plugin.php', <<<'PHP'
+<?php
+/**
+ * Plugin Name: My Plugin
+ * Author: John Doe
+ * Author URI: mailto:john@example.com
+ */
+PHP);
+
+        file_put_contents($pluginDir . '/readme.txt', <<<'TXT'
+=== My Plugin ===
+Contributors: johndoe
+Donate link: https://example.com/donate
+Tags: test
+Requires at least: 5.0
+Tested up to: 6.4
+Stable tag: 1.0
+License: GPLv2
+
+A test plugin.
+
+== Description ==
+Full description here.
+TXT);
+
+        $result = $this->scanner->scanDirectory($pluginDir);
+
+        $this->assertTrue($result->hasReadmeDonateLink());
+        $this->assertEquals('https://example.com/donate', $result->readmeDonateLink);
+    }
+
+    /**
+     * Test that donate link with email address satisfies the email check.
+     */
+    public function testReadmeDonateLinWithEmailCountsAsEmail(): void
+    {
+        $pluginDir = $this->testDir . '/my-plugin';
+        mkdir($pluginDir);
+
+        file_put_contents($pluginDir . '/my-plugin.php', <<<'PHP'
+<?php
+/**
+ * Plugin Name: My Plugin
+ * Author: John Doe
+ * Author URI: https://example.com
+ */
+PHP);
+
+        file_put_contents($pluginDir . '/readme.txt', <<<'TXT'
+=== My Plugin ===
+Contributors: johndoe
+Donate link: mailto:donate@example.com
+Tags: test
+Requires at least: 5.0
+Tested up to: 6.4
+Stable tag: 1.0
+License: GPLv2
+
+A test plugin.
+
+== Description ==
+Full description here.
+TXT);
+
+        $result = $this->scanner->scanDirectory($pluginDir);
+
+        $this->assertTrue($result->hasEmail());
+    }
+
+    /**
+     * Test that missing readme.txt contributors generates an issue.
+     */
+    public function testNoReadmeContributorsGeneratesIssue(): void
+    {
+        $pluginDir = $this->testDir . '/my-plugin';
+        mkdir($pluginDir);
+
+        file_put_contents($pluginDir . '/my-plugin.php', <<<'PHP'
+<?php
+/**
+ * Plugin Name: My Plugin
+ * Author: John Doe
+ * Author URI: mailto:john@example.com
+ */
+PHP);
+
+        // No readme.txt at all
+        $result = $this->scanner->scanDirectory($pluginDir);
+
+        $this->assertFalse($result->hasReadmeContributors());
+        $this->assertContains('No contributors listed in readme.txt', $result->issues);
+    }
+
+    /**
+     * Test that having readme.txt contributors avoids that issue.
+     */
+    public function testReadmeContributorsPresentNoIssue(): void
+    {
+        $pluginDir = $this->testDir . '/my-plugin';
+        mkdir($pluginDir);
+
+        file_put_contents($pluginDir . '/my-plugin.php', <<<'PHP'
+<?php
+/**
+ * Plugin Name: My Plugin
+ * Author: John Doe
+ * Author URI: mailto:john@example.com
+ */
+PHP);
+
+        file_put_contents($pluginDir . '/readme.txt', <<<'TXT'
+=== My Plugin ===
+Contributors: johndoe
+Tags: test
+Requires at least: 5.0
+Tested up to: 6.4
+Stable tag: 1.0
+License: GPLv2
+
+A test plugin.
+
+== Description ==
+Full description here.
+TXT);
+
+        $result = $this->scanner->scanDirectory($pluginDir);
+
+        $this->assertTrue($result->hasReadmeContributors());
+        $this->assertNotContains('No contributors listed in readme.txt', $result->issues);
+    }
+
+    /**
+     * Test that readme fields appear in getData output.
+     */
+    public function testReadmeFieldsInGetData(): void
+    {
+        $pluginDir = $this->testDir . '/my-plugin';
+        mkdir($pluginDir);
+
+        file_put_contents($pluginDir . '/my-plugin.php', <<<'PHP'
+<?php
+/**
+ * Plugin Name: My Plugin
+ * Author: John Doe
+ * Author URI: mailto:john@example.com
+ */
+PHP);
+
+        file_put_contents($pluginDir . '/readme.txt', <<<'TXT'
+=== My Plugin ===
+Contributors: johndoe, janedoe
+Donate link: https://example.com/donate
+Tags: test
+Requires at least: 5.0
+Tested up to: 6.4
+Stable tag: 1.0
+License: GPLv2
+
+A test plugin.
+
+== Description ==
+Full description here.
+TXT);
+
+        $result = $this->scanner->scanDirectory($pluginDir);
+        $data = $result->getData();
+
+        $this->assertArrayHasKey('readme', $data);
+        $this->assertArrayHasKey('contributors', $data['readme']);
+        $this->assertArrayHasKey('donate_link', $data['readme']);
+        $this->assertContains('johndoe', $data['readme']['contributors']);
+        $this->assertEquals('https://example.com/donate', $data['readme']['donate_link']);
+    }
+
+    /**
+     * Test that readme fields appear in getSummary output.
+     */
+    public function testReadmeFieldsInGetSummary(): void
+    {
+        $pluginDir = $this->testDir . '/my-plugin';
+        mkdir($pluginDir);
+
+        file_put_contents($pluginDir . '/my-plugin.php', <<<'PHP'
+<?php
+/**
+ * Plugin Name: My Plugin
+ * Author: John Doe
+ * Author URI: mailto:john@example.com
+ */
+PHP);
+
+        file_put_contents($pluginDir . '/readme.txt', <<<'TXT'
+=== My Plugin ===
+Contributors: johndoe
+Donate link: https://example.com/donate
+Tags: test
+Requires at least: 5.0
+Tested up to: 6.4
+Stable tag: 1.0
+License: GPLv2
+
+A test plugin.
+
+== Description ==
+Full description here.
+TXT);
+
+        $result = $this->scanner->scanDirectory($pluginDir);
+        $summary = $result->getSummary();
+
+        $this->assertArrayHasKey('has_readme_contributors', $summary);
+        $this->assertArrayHasKey('has_readme_donate_link', $summary);
+        $this->assertTrue($summary['has_readme_contributors']);
+        $this->assertTrue($summary['has_readme_donate_link']);
     }
 
     /**

@@ -5,35 +5,32 @@ declare(strict_types=1);
 namespace FairForge\Tools\SupportInfo;
 
 use FairForge\Shared\AbstractToolScanner;
-use FairForge\Shared\ZipHandler;
+use FairForge\Shared\PluginMetadataReader;
 
 /**
  * WordPress Support Info Scanner.
  *
- * Scans WordPress plugins and themes for support contact information.
+ * Scans WordPress plugins for support contact information using the
+ * fairpm/did-manager PluginHeaderParser and ReadmeParser via the shared
+ * PluginMetadataReader.
  *
  * Checks for:
- * - Support: header in the main plugin/theme file comment block (support contact)
+ * - Support: header in the main plugin file comment block
  * - SUPPORT.md file with contact information
+ * - Support section in readme.txt
  * - Consistency between support contact sources
  */
 class SupportInfoScanner extends AbstractToolScanner
 {
-    /**
-     * Pattern to match Support header in a comment block.
-     * Matches: Support: support@example.com or Support: https://example.com/support
-     */
-    private const SUPPORT_HEADER_PATTERN = '/^\s*\*?\s*Support:\s*(.+?)\s*$/mi';
+    private PluginMetadataReader $metadataReader;
 
-    /**
-     * Common plugin header patterns to identify the main file.
-     */
-    private const PLUGIN_HEADER_PATTERN = '/^\s*\*?\s*Plugin Name:\s*.+/mi';
-
-    /**
-     * Common theme header patterns to identify style.css.
-     */
-    private const THEME_HEADER_PATTERN = '/^\s*Theme Name:\s*.+/mi';
+    public function __construct(
+        ?\FairForge\Shared\ZipHandler $zipHandler = null,
+        ?PluginMetadataReader $metadataReader = null,
+    ) {
+        parent::__construct($zipHandler);
+        $this->metadataReader = $metadataReader ?? new PluginMetadataReader();
+    }
 
     /**
      * {@inheritDoc}
@@ -69,17 +66,17 @@ class SupportInfoScanner extends AbstractToolScanner
         // Find the actual package directory (might be nested)
         $packageDir = $this->findPackageDirectory($directory);
 
-        // Detect package type and find main file
-        $mainFileInfo = $this->findMainFile($packageDir);
-        $packageType = $mainFileInfo['type'];
-        $mainFile = $mainFileInfo['file'];
+        // Use the did-manager parser to find the main file and parse headers
+        $mainFile = $this->metadataReader->findMainFile($packageDir);
+        $packageType = $mainFile !== null ? 'plugin' : null;
 
-        // Extract support header from main file
+        // Extract support header from parsed data
         $supportHeaderContact = null;
         $headerFile = null;
 
         if ($mainFile !== null) {
-            $supportHeaderContact = $this->extractSupportHeader($mainFile, $packageType);
+            $headers = $this->metadataReader->parseFile($mainFile);
+            $supportHeaderContact = $headers['support'] ?? null;
 
             if ($supportHeaderContact !== null) {
                 $headerFile = $this->getRelativePath($packageDir, $mainFile);
@@ -89,6 +86,14 @@ class SupportInfoScanner extends AbstractToolScanner
         // Check for support files
         $supportMdInfo = $this->findSupportMd($packageDir);
 
+        // Parse readme.txt for support section
+        $readmeData = $this->metadataReader->parseReadme($packageDir);
+        $readmeSupportSection = $readmeData['sections']['support'] ?? null;
+        $readmeSupportContact = null;
+        if ($readmeSupportSection !== null) {
+            $readmeSupportContact = $this->extractContactFromText($readmeSupportSection);
+        }
+
         // Gather support contacts for consistency check
         $supportContacts = [];
         if ($supportHeaderContact !== null) {
@@ -96,6 +101,9 @@ class SupportInfoScanner extends AbstractToolScanner
         }
         if ($supportMdInfo['contact'] !== null) {
             $supportContacts['support.md'] = $this->normalizeContact($supportMdInfo['contact']);
+        }
+        if ($readmeSupportContact !== null) {
+            $supportContacts['readme.txt'] = $this->normalizeContact($readmeSupportContact);
         }
 
         // Check consistency
@@ -108,7 +116,7 @@ class SupportInfoScanner extends AbstractToolScanner
             $supportMdInfo,
             $isConsistent,
             $supportContacts,
-            $packageType,
+            $readmeSupportContact,
         );
 
         return new SupportInfoResult(
@@ -121,6 +129,7 @@ class SupportInfoScanner extends AbstractToolScanner
             issues: $issues,
             scannedDirectory: $packageDir,
             packageType: $packageType,
+            readmeSupportContact: $readmeSupportContact,
         );
     }
 
@@ -129,7 +138,6 @@ class SupportInfoScanner extends AbstractToolScanner
      */
     private function findPackageDirectory(string $directory): string
     {
-        // Check if there's exactly one subdirectory (common for ZIP extracts)
         $items = array_diff(scandir($directory) ?: [], ['.', '..']);
 
         if (count($items) === 1) {
@@ -140,105 +148,6 @@ class SupportInfoScanner extends AbstractToolScanner
         }
 
         return $directory;
-    }
-
-    /**
-     * Find the main plugin or theme file.
-     *
-     * @return array{type: string|null, file: string|null}
-     */
-    private function findMainFile(string $directory): array
-    {
-        // First check for theme (style.css in root)
-        $styleCss = $directory . '/style.css';
-        if (file_exists($styleCss)) {
-            $content = file_get_contents($styleCss);
-            if ($content !== false && preg_match(self::THEME_HEADER_PATTERN, $content)) {
-                return ['type' => 'theme', 'file' => $styleCss];
-            }
-        }
-
-        // Look for plugin files
-        $pluginFiles = $this->findPluginFiles($directory);
-
-        // First, check for a file with the same name as the directory
-        $dirName = basename($directory);
-        $expectedFile = $directory . '/' . $dirName . '.php';
-        if (in_array($expectedFile, $pluginFiles, true)) {
-            return ['type' => 'plugin', 'file' => $expectedFile];
-        }
-
-        // Otherwise, return the first plugin file found
-        if (!empty($pluginFiles)) {
-            return ['type' => 'plugin', 'file' => $pluginFiles[0]];
-        }
-
-        return ['type' => null, 'file' => null];
-    }
-
-    /**
-     * Find all PHP files with plugin headers in the root directory.
-     *
-     * @return string[]
-     */
-    private function findPluginFiles(string $directory): array
-    {
-        $pluginFiles = [];
-        $files = glob($directory . '/*.php') ?: [];
-
-        foreach ($files as $file) {
-            $content = file_get_contents($file);
-            if ($content === false) {
-                continue;
-            }
-
-            // Check if it has a plugin header
-            if (preg_match(self::PLUGIN_HEADER_PATTERN, $content)) {
-                $pluginFiles[] = $file;
-            }
-        }
-
-        return $pluginFiles;
-    }
-
-    /**
-     * Extract Support header from a file.
-     */
-    private function extractSupportHeader(string $filePath, ?string $packageType): ?string
-    {
-        $content = file_get_contents($filePath);
-        if ($content === false) {
-            return null;
-        }
-
-        // Find the comment block that contains the Plugin Name / Theme Name header.
-        // Some plugins (e.g. Akismet) have a docblock before the actual plugin
-        // header, so we cannot just grab the first comment block.
-        $headerPattern = $packageType === 'theme'
-            ? self::THEME_HEADER_PATTERN
-            : self::PLUGIN_HEADER_PATTERN;
-
-        if (!preg_match_all('/\/\*\*?.*?\*\//s', $content, $allBlocks)) {
-            return null;
-        }
-
-        $commentBlock = null;
-        foreach ($allBlocks[0] as $block) {
-            if (preg_match($headerPattern, $block)) {
-                $commentBlock = $block;
-                break;
-            }
-        }
-
-        if ($commentBlock === null) {
-            return null;
-        }
-
-        if (preg_match(self::SUPPORT_HEADER_PATTERN, $commentBlock, $matches)) {
-            return trim($matches[1]);
-        }
-
-        return null;
     }
 
     /**
@@ -271,6 +180,14 @@ class SupportInfoScanner extends AbstractToolScanner
             return null;
         }
 
+        return $this->extractContactFromText($content);
+    }
+
+    /**
+     * Extract contact information (email or URL) from a text string.
+     */
+    private function extractContactFromText(string $content): ?string
+    {
         // Look for email addresses
         if (preg_match('/[\w.+-]+@[\w.-]+\.[a-zA-Z]{2,}/', $content, $matches)) {
             return $matches[0];
@@ -294,13 +211,8 @@ class SupportInfoScanner extends AbstractToolScanner
      */
     private function normalizeContact(string $contact): string
     {
-        // Lowercase
         $normalized = strtolower(trim($contact));
-
-        // Remove mailto: prefix
         $normalized = preg_replace('/^mailto:/i', '', $normalized) ?? $normalized;
-
-        // Remove trailing slashes from URLs
         $normalized = rtrim($normalized, '/');
 
         return $normalized;
@@ -335,12 +247,12 @@ class SupportInfoScanner extends AbstractToolScanner
         array $supportMdInfo,
         bool $isConsistent,
         array $supportContacts,
-        ?string $packageType,
+        ?string $readmeSupportContact,
     ): array {
         $issues = [];
 
         if ($mainFile === null) {
-            $issues[] = 'Could not identify the main plugin or theme file';
+            $issues[] = 'Could not identify the main plugin file';
         } elseif ($supportHeaderContact === null) {
             $issues[] = 'Missing Support header in the main file comment block';
         }
@@ -363,7 +275,7 @@ class SupportInfoScanner extends AbstractToolScanner
 
         // Check that at least one field contains an email address
         $hasEmail = false;
-        $emailFields = [$supportHeaderContact, $supportMdInfo['contact']];
+        $emailFields = [$supportHeaderContact, $supportMdInfo['contact'], $readmeSupportContact];
         foreach ($emailFields as $value) {
             if ($value !== null && preg_match('/[\w.+-]+@[\w.-]+\.[a-zA-Z]{2,}/', $value)) {
                 $hasEmail = true;

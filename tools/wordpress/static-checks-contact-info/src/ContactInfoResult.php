@@ -10,8 +10,9 @@ use FairForge\Shared\AbstractToolResult;
  * Represents the result of a contact info scan.
  *
  * Holds information about:
- * - Publisher contact (Author, Author URI) in the main plugin/theme file
- * - Project URI (Plugin URI / Theme URI)
+ * - Publisher contact (Author, Author URI) in the main plugin file
+ * - Project URI (Plugin URI)
+ * - readme.txt contributors and donate link
  */
 class ContactInfoResult extends AbstractToolResult
 {
@@ -23,8 +24,10 @@ class ContactInfoResult extends AbstractToolResult
      * @param string|null $headerFile The file where the headers were found
      * @param string[] $issues List of issues/warnings found
      * @param string $scannedDirectory The directory that was scanned
-     * @param string|null $packageType 'plugin' or 'theme' if detected
+     * @param string|null $packageType 'plugin' if detected
      * @param string|null $parseError Parse error message if any
+     * @param string[] $readmeContributors Contributors listed in readme.txt
+     * @param string|null $readmeDonateLink Donate link from readme.txt
      */
     public function __construct(
         public readonly bool $success,
@@ -36,7 +39,25 @@ class ContactInfoResult extends AbstractToolResult
         public readonly string $scannedDirectory,
         public readonly ?string $packageType = null,
         public readonly ?string $parseError = null,
+        public readonly array $readmeContributors = [],
+        public readonly ?string $readmeDonateLink = null,
     ) {
+    }
+
+    /**
+     * Check if readme.txt has contributors listed.
+     */
+    public function hasReadmeContributors(): bool
+    {
+        return !empty($this->readmeContributors);
+    }
+
+    /**
+     * Check if readme.txt has a donate link.
+     */
+    public function hasReadmeDonateLink(): bool
+    {
+        return $this->readmeDonateLink !== null;
     }
 
     /**
@@ -62,6 +83,7 @@ class ContactInfoResult extends AbstractToolResult
     {
         $fields = [
             $this->publisherUri,
+            $this->readmeDonateLink,
         ];
 
         foreach ($fields as $value) {
@@ -116,6 +138,8 @@ class ContactInfoResult extends AbstractToolResult
             'has_publisher_uri' => $this->publisherUri !== null,
             'has_project_uri' => $this->hasProjectUri(),
             'has_email' => $this->hasEmail(),
+            'has_readme_contributors' => $this->hasReadmeContributors(),
+            'has_readme_donate_link' => $this->hasReadmeDonateLink(),
             'issue_count' => count($this->issues),
             'publisher_name' => $this->publisherName,
             'publisher_uri' => $this->publisherUri,
@@ -158,6 +182,10 @@ class ContactInfoResult extends AbstractToolResult
             ],
             'project' => [
                 'uri' => $this->projectUri,
+            ],
+            'readme' => [
+                'contributors' => $this->readmeContributors,
+                'donate_link' => $this->readmeDonateLink,
             ],
         ];
     }

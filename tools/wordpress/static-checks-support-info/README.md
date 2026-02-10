@@ -6,7 +6,8 @@ A PHP library and CLI tool for checking WordPress plugins and themes for **suppo
 
 - **Check Support header** in the main plugin/theme file comment block
 - **Detect SUPPORT.md** file with contact information
-- **Verify consistency** between support contact sources
+- **Parse readme.txt** for a `== Support ==` section via `fairpm/did-manager`
+- **Verify consistency** between all support contact sources
 - **Require at least one email** address in support contact fields
 - **Download and scan** ZIP files from URLs (e.g., wordpress.org, github)
 - **Scan local ZIP files** or directories
@@ -50,6 +51,27 @@ A `SUPPORT.md` file in the root directory with contact information:
 
 For help with this plugin, please contact support@example.com.
 ```
+
+### 3. readme.txt Support Section
+
+A `== Support ==` section inside `readme.txt`:
+
+```
+=== My Plugin ===
+Contributors: johndoe
+Tags: test
+Requires at least: 5.0
+Stable tag: 1.0
+
+== Description ==
+A great plugin.
+
+== Support ==
+For help, email support@example.com or visit https://example.com/support.
+```
+
+The readme.txt is parsed using `fairpm/did-manager`'s `ReadmeParser`.
+Custom sections like `== Support ==` are extracted automatically.
 
 ## Requirements
 
@@ -111,6 +133,7 @@ php bin/support-info https://example.com/plugin.zip --output=results.json
     "passes": true,
     "has_support_header": true,
     "has_support_md": true,
+    "has_readme_support_section": true,
     "has_email": true,
     "is_consistent": true,
     "issue_count": 0,
@@ -126,6 +149,10 @@ php bin/support-info https://example.com/plugin.zip --output=results.json
       },
       "support_md": {
         "exists": true,
+        "contact": "support@example.com"
+      },
+      "readme_txt": {
+        "has_support_section": true,
         "contact": "support@example.com"
       }
     },
@@ -172,15 +199,17 @@ if ($result->passes()) {
 // Get support info
 echo "Support header: " . ($result->supportHeaderContact ?? 'None') . "\n";
 echo "SUPPORT.md contact: " . ($result->supportMdContact ?? 'None') . "\n";
+echo "readme.txt contact: " . ($result->readmeSupportContact ?? 'None') . "\n";
 echo "Primary contact: " . ($result->getPrimarySupportInfo() ?? 'None') . "\n";
 
 // Check what's present
-$result->hasSupportHeader();   // true if Support: header found
-$result->hasSupportFile();     // true if SUPPORT.md exists
-$result->hasSupportInfo();     // true if any support info found
-$result->hasEmail();           // true if any field contains an email address
+$result->hasSupportHeader();          // true if Support: header found
+$result->hasSupportFile();            // true if SUPPORT.md exists
+$result->hasReadmeSupportSection();   // true if readme.txt has == Support == section
+$result->hasSupportInfo();            // true if any support info found
+$result->hasEmail();                  // true if any field contains an email address
 
-// Consistency
+// Consistency (includes header, SUPPORT.md, and readme.txt contacts)
 echo "Consistent: " . ($result->isConsistent ? 'Yes' : 'No') . "\n";
 
 // Get summary

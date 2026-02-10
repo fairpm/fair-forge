@@ -5,42 +5,39 @@ declare(strict_types=1);
 namespace FairForge\Tools\SecurityInfo;
 
 use FairForge\Shared\AbstractToolScanner;
-use FairForge\Shared\ZipHandler;
+use FairForge\Shared\PluginMetadataReader;
 
 /**
- * WordPress Security Header Scanner.
+ * WordPress Security Info Scanner.
  *
- * Scans WordPress plugins and themes for security contact headers and files.
+ * Scans WordPress plugins for security contact headers and files using the
+ * fairpm/did-manager PluginHeaderParser and ReadmeParser via the shared
+ * PluginMetadataReader.
  *
  * Checks for:
- * - Security: header in the main plugin/theme file comment block
+ * - Security: header in the main plugin file comment block
  * - security.md file
  * - security.txt file
+ * - Security section in readme.txt
  * - Consistency between all sources
  */
 class SecurityScanner extends AbstractToolScanner
 {
-    /**
-     * Pattern to match Security header in a comment block.
-     * Matches: Security: email@example.com or Security: https://example.com/security
-     */
-    private const SECURITY_HEADER_PATTERN = '/^\s*\*?\s*Security:\s*(.+?)\s*$/mi';
-
     /**
      * Pattern to extract contact from security.txt (RFC 9116 format).
      * Matches: Contact: email or Contact: https://...
      */
     private const SECURITY_TXT_CONTACT_PATTERN = '/^Contact:\s*(.+?)\s*$/mi';
 
-    /**
-     * Common plugin header patterns to identify the main file.
-     */
-    private const PLUGIN_HEADER_PATTERN = '/^\s*\*?\s*Plugin Name:\s*.+/mi';
+    private PluginMetadataReader $metadataReader;
 
-    /**
-     * Common theme header patterns to identify style.css.
-     */
-    private const THEME_HEADER_PATTERN = '/^\s*Theme Name:\s*.+/mi';
+    public function __construct(
+        ?\FairForge\Shared\ZipHandler $zipHandler = null,
+        ?PluginMetadataReader $metadataReader = null,
+    ) {
+        parent::__construct($zipHandler);
+        $this->metadataReader = $metadataReader ?? new PluginMetadataReader();
+    }
 
     /**
      * {@inheritDoc}
@@ -78,16 +75,17 @@ class SecurityScanner extends AbstractToolScanner
         // Find the actual package directory (might be nested)
         $packageDir = $this->findPackageDirectory($directory);
 
-        // Detect package type and find main file
-        $mainFileInfo = $this->findMainFile($packageDir);
-        $packageType = $mainFileInfo['type'];
-        $mainFile = $mainFileInfo['file'];
+        // Use the did-manager parser to find the main file and parse headers
+        $mainFile = $this->metadataReader->findMainFile($packageDir);
+        $packageType = $mainFile !== null ? 'plugin' : null;
 
-        // Extract security header from main file
+        // Extract security header from parsed data
         $headerContact = null;
         $headerFile = null;
         if ($mainFile !== null) {
-            $headerContact = $this->extractSecurityHeader($mainFile);
+            $headers = $this->metadataReader->parseFile($mainFile);
+            $headerContact = $headers['security'] ?? null;
+
             if ($headerContact !== null) {
                 $headerFile = $this->getRelativePath($packageDir, $mainFile);
             }
@@ -96,6 +94,14 @@ class SecurityScanner extends AbstractToolScanner
         // Check for security files
         $securityMdInfo = $this->findSecurityMd($packageDir);
         $securityTxtInfo = $this->findSecurityTxt($packageDir);
+
+        // Parse readme.txt for a security section
+        $readmeData = $this->metadataReader->parseReadme($packageDir);
+        $readmeSecuritySection = $readmeData['sections']['security'] ?? null;
+        $readmeSecurityContact = null;
+        if ($readmeSecuritySection !== null) {
+            $readmeSecurityContact = $this->extractContactFromText($readmeSecuritySection);
+        }
 
         // Gather all contacts for consistency check
         $contacts = [];
@@ -107,6 +113,9 @@ class SecurityScanner extends AbstractToolScanner
         }
         if ($securityTxtInfo['contact'] !== null) {
             $contacts['security.txt'] = $this->normalizeContact($securityTxtInfo['contact']);
+        }
+        if ($readmeSecurityContact !== null) {
+            $contacts['readme.txt'] = $this->normalizeContact($readmeSecurityContact);
         }
 
         // Check consistency
@@ -120,7 +129,6 @@ class SecurityScanner extends AbstractToolScanner
             $securityTxtInfo,
             $isConsistent,
             $contacts,
-            $packageType,
         );
 
         return new SecurityResult(
@@ -135,6 +143,7 @@ class SecurityScanner extends AbstractToolScanner
             issues: $issues,
             scannedDirectory: $packageDir,
             packageType: $packageType,
+            readmeSecurityContact: $readmeSecurityContact,
         );
     }
 
@@ -143,7 +152,6 @@ class SecurityScanner extends AbstractToolScanner
      */
     private function findPackageDirectory(string $directory): string
     {
-        // Check if there's exactly one subdirectory (common for ZIP extracts)
         $items = array_diff(scandir($directory) ?: [], ['.', '..']);
 
         if (count($items) === 1) {
@@ -154,104 +162,6 @@ class SecurityScanner extends AbstractToolScanner
         }
 
         return $directory;
-    }
-
-    /**
-     * Find the main plugin or theme file.
-     *
-     * @return array{type: string|null, file: string|null}
-     */
-    private function findMainFile(string $directory): array
-    {
-        // First check for theme (style.css in root)
-        $styleCss = $directory . '/style.css';
-        if (file_exists($styleCss)) {
-            $content = file_get_contents($styleCss);
-            if ($content !== false && preg_match(self::THEME_HEADER_PATTERN, $content)) {
-                return ['type' => 'theme', 'file' => $styleCss];
-            }
-        }
-
-        // Look for plugin files
-        $pluginFiles = $this->findPluginFiles($directory);
-
-        // First, check for a file with the same name as the directory
-        $dirName = basename($directory);
-        $expectedFile = $directory . '/' . $dirName . '.php';
-        if (in_array($expectedFile, $pluginFiles, true)) {
-            return ['type' => 'plugin', 'file' => $expectedFile];
-        }
-
-        // Otherwise, return the first plugin file found
-        if (!empty($pluginFiles)) {
-            return ['type' => 'plugin', 'file' => $pluginFiles[0]];
-        }
-
-        return ['type' => null, 'file' => null];
-    }
-
-    /**
-     * Find all PHP files with plugin headers in the root directory.
-     *
-     * @return string[]
-     */
-    private function findPluginFiles(string $directory): array
-    {
-        $pluginFiles = [];
-        $files = glob($directory . '/*.php') ?: [];
-
-        foreach ($files as $file) {
-            $content = file_get_contents($file);
-            if ($content === false) {
-                continue;
-            }
-
-            // Check if it has a plugin header
-            if (preg_match(self::PLUGIN_HEADER_PATTERN, $content)) {
-                $pluginFiles[] = $file;
-            }
-        }
-
-        return $pluginFiles;
-    }
-
-    /**
-     * Extract Security header from a PHP file.
-     */
-    private function extractSecurityHeader(string $filePath): ?string
-    {
-        $content = file_get_contents($filePath);
-        if ($content === false) {
-            return null;
-        }
-
-        // Find the comment block that contains the Plugin Name / Theme Name
-        // header. Some plugins (e.g. Akismet) have a docblock before the
-        // actual plugin header, so we cannot just grab the first block.
-        if (!preg_match_all('/\/\*\*?.*?\*\//s', $content, $allBlocks)) {
-            return null;
-        }
-
-        $commentBlock = null;
-        foreach ($allBlocks[0] as $block) {
-            if (
-                preg_match(self::PLUGIN_HEADER_PATTERN, $block)
-                || preg_match(self::THEME_HEADER_PATTERN, $block)
-            ) {
-                $commentBlock = $block;
-                break;
-            }
-        }
-
-        if ($commentBlock === null) {
-            return null;
-        }
-
-        if (preg_match(self::SECURITY_HEADER_PATTERN, $commentBlock, $matches)) {
-            return trim($matches[1]);
-        }
-
-        return null;
     }
 
     /**
@@ -281,7 +191,6 @@ class SecurityScanner extends AbstractToolScanner
      */
     private function findSecurityTxt(string $directory): array
     {
-        // Check common locations
         $possiblePaths = [
             $directory . '/security.txt',
             $directory . '/SECURITY.txt',
@@ -308,17 +217,22 @@ class SecurityScanner extends AbstractToolScanner
             return null;
         }
 
-        // Look for email addresses
+        return $this->extractContactFromText($content);
+    }
+
+    /**
+     * Extract contact information (email or URL) from a text string.
+     */
+    private function extractContactFromText(string $content): ?string
+    {
         if (preg_match('/[\w.+-]+@[\w.-]+\.[a-zA-Z]{2,}/', $content, $matches)) {
             return $matches[0];
         }
 
-        // Look for URLs with security-related paths
         if (preg_match('/https?:\/\/[^\s\)]+(?:security|report|vulnerability)[^\s\)]*/i', $content, $matches)) {
             return $matches[0];
         }
 
-        // Look for any URL
         if (preg_match('/https?:\/\/[^\s\)]+/', $content, $matches)) {
             return $matches[0];
         }
@@ -348,13 +262,8 @@ class SecurityScanner extends AbstractToolScanner
      */
     private function normalizeContact(string $contact): string
     {
-        // Lowercase
         $normalized = strtolower(trim($contact));
-
-        // Remove mailto: prefix
         $normalized = preg_replace('/^mailto:/i', '', $normalized) ?? $normalized;
-
-        // Remove trailing slashes from URLs
         $normalized = rtrim($normalized, '/');
 
         return $normalized;
@@ -391,12 +300,11 @@ class SecurityScanner extends AbstractToolScanner
         array $securityTxtInfo,
         bool $isConsistent,
         array $contacts,
-        ?string $packageType,
     ): array {
         $issues = [];
 
         if ($mainFile === null) {
-            $issues[] = 'Could not identify the main plugin or theme file';
+            $issues[] = 'Could not identify the main plugin file';
         } elseif ($headerContact === null) {
             $issues[] = 'Missing Security header in the main file comment block';
         }

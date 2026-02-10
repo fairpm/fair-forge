@@ -12,6 +12,7 @@ use FairForge\Shared\AbstractToolResult;
  * Holds information about:
  * - Support contact from the main file header (Support: header)
  * - SUPPORT.md file contact information
+ * - Support section from readme.txt
  * - Consistency between support contact sources
  */
 class SupportInfoResult extends AbstractToolResult
@@ -25,8 +26,9 @@ class SupportInfoResult extends AbstractToolResult
      * @param bool $isConsistent Whether all present support contacts are consistent
      * @param string[] $issues List of issues/warnings found
      * @param string $scannedDirectory The directory that was scanned
-     * @param string|null $packageType 'plugin' or 'theme' if detected
+     * @param string|null $packageType 'plugin' if detected
      * @param string|null $parseError Parse error message if any
+     * @param string|null $readmeSupportContact Support contact extracted from readme.txt support section
      */
     public function __construct(
         public readonly bool $success,
@@ -39,6 +41,7 @@ class SupportInfoResult extends AbstractToolResult
         public readonly string $scannedDirectory,
         public readonly ?string $packageType = null,
         public readonly ?string $parseError = null,
+        public readonly ?string $readmeSupportContact = null,
     ) {
     }
 
@@ -59,11 +62,19 @@ class SupportInfoResult extends AbstractToolResult
     }
 
     /**
-     * Check if support information is present (header or file).
+     * Check if support information is present (header, file, or readme section).
      */
     public function hasSupportInfo(): bool
     {
-        return $this->hasSupportHeader() || $this->hasSupportFile();
+        return $this->hasSupportHeader() || $this->hasSupportFile() || $this->hasReadmeSupportSection();
+    }
+
+    /**
+     * Check if readme.txt has a support section with contact info.
+     */
+    public function hasReadmeSupportSection(): bool
+    {
+        return $this->readmeSupportContact !== null;
     }
 
     /**
@@ -74,6 +85,7 @@ class SupportInfoResult extends AbstractToolResult
         $fields = [
             $this->supportHeaderContact,
             $this->supportMdContact,
+            $this->readmeSupportContact,
         ];
 
         foreach ($fields as $value) {
@@ -99,7 +111,8 @@ class SupportInfoResult extends AbstractToolResult
     public function getPrimarySupportInfo(): ?string
     {
         return $this->supportHeaderContact
-            ?? $this->supportMdContact;
+            ?? $this->supportMdContact
+            ?? $this->readmeSupportContact;
     }
 
     /**
@@ -135,6 +148,7 @@ class SupportInfoResult extends AbstractToolResult
             'passes' => $this->passes(),
             'has_support_header' => $this->hasSupportHeader(),
             'has_support_md' => $this->hasSupportMd,
+            'has_readme_support_section' => $this->hasReadmeSupportSection(),
             'has_email' => $this->hasEmail(),
             'is_consistent' => $this->isConsistent,
             'issue_count' => count($this->issues),
@@ -180,6 +194,10 @@ class SupportInfoResult extends AbstractToolResult
                 'support_md' => [
                     'exists' => $this->hasSupportMd,
                     'contact' => $this->supportMdContact,
+                ],
+                'readme_txt' => [
+                    'has_support_section' => $this->hasReadmeSupportSection(),
+                    'contact' => $this->readmeSupportContact,
                 ],
             ],
             'consistency' => [
