@@ -4,12 +4,12 @@
 declare(strict_types=1);
 
 /**
- * WordPress Security Header Scanner CLI
+ * WordPress Security Info Scanner CLI
  *
  * Checks WordPress plugins and themes for security contact headers and files.
  *
  * Usage:
- *   php bin/security-header <url|path> [options]
+ *   php bin/security-info <url|path> [options]
  *
  * Options:
  *   --output=FILE           Save JSON output to specified file
@@ -18,8 +18,8 @@ declare(strict_types=1);
  *   --help, -h              Show this help message
  *
  * Examples:
- *   php bin/security-header https://downloads.wordpress.org/plugin/akismet.zip
- *   php bin/security-header ./my-plugin.zip --output=results.json
+ *   php bin/security-info https://downloads.wordpress.org/plugin/akismet.zip
+ *   php bin/security-info ./my-plugin.zip --output=results.json
  */
 
 // Find autoloader
@@ -44,7 +44,7 @@ if (!$autoloadFound) {
     exit(1);
 }
 
-use FairForge\Tools\SecurityHeader\SecurityScanner;
+use FairForge\Tools\SecurityInfo\SecurityScanner;
 
 /**
  * Parse command line arguments.
@@ -88,7 +88,7 @@ function parseArguments(array $argv): array
 function printHelp(): void
 {
     echo <<<HELP
-WordPress Security Header Scanner
+WordPress Security Info Scanner
 
 Checks WordPress plugins and themes for security contact information:
 - Security: header in the main plugin/theme file comment block
@@ -97,7 +97,7 @@ Checks WordPress plugins and themes for security contact information:
 - Consistency between all security contact sources
 
 USAGE:
-    php bin/security-header <url|path> [options]
+    php bin/security-info <url|path> [options]
 
 ARGUMENTS:
     <url|path>              URL to a ZIP file or path to a local ZIP/directory
@@ -110,16 +110,16 @@ OPTIONS:
 
 EXAMPLES:
     # Check a WordPress plugin from wordpress.org
-    php bin/security-header https://downloads.wordpress.org/plugin/akismet.zip
+    php bin/security-info https://downloads.wordpress.org/plugin/akismet.zip
 
     # Check a local ZIP file and save results
-    php bin/security-header ./my-plugin.zip --output=results.json
+    php bin/security-info ./my-plugin.zip --output=results.json
 
     # Check a local directory
-    php bin/security-header ./my-plugin/
+    php bin/security-info ./my-plugin/
 
     # Quiet mode - only JSON output
-    php bin/security-header plugin.zip --quiet
+    php bin/security-info plugin.zip --quiet
 
 EXPECTED FORMAT:
     The main plugin/theme file should contain a Security header:
@@ -168,8 +168,8 @@ if ($options['help']) {
 
 if ($target === null) {
     fwrite(STDERR, "Error: No input URL or file path provided.\n\n");
-    fwrite(STDERR, "Usage: php bin/security-header <url|path> [options]\n");
-    fwrite(STDERR, "Run 'php bin/security-header --help' for more information.\n");
+    fwrite(STDERR, "Usage: php bin/security-info <url|path> [options]\n");
+    fwrite(STDERR, "Run 'php bin/security-info --help' for more information.\n");
     exit(2);
 }
 

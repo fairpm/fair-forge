@@ -1,0 +1,222 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+/**
+ * WordPress Contact Info Scanner CLI
+ *
+ * Checks WordPress plugins and themes for publisher and support contact information.
+ *
+ * Usage:
+ *   php bin/contact-info <url|path> [options]
+ *
+ * Options:
+ *   --output=FILE           Save JSON output to specified file
+ *   --insecure, -k          Skip SSL certificate verification
+ *   --quiet, -q             Suppress progress messages (output only JSON)
+ *   --help, -h              Show this help message
+ *
+ * Examples:
+ *   php bin/contact-info https://downloads.wordpress.org/plugin/akismet.zip
+ *   php bin/contact-info ./my-plugin.zip --output=results.json
+ */
+
+// Find autoloader
+$autoloadPaths = [
+    __DIR__ . '/../vendor/autoload.php',
+    __DIR__ . '/../../vendor/autoload.php',
+    __DIR__ . '/../../../autoload.php',
+];
+
+$autoloadFound = false;
+foreach ($autoloadPaths as $autoloadPath) {
+    if (file_exists($autoloadPath)) {
+        require_once $autoloadPath;
+        $autoloadFound = true;
+        break;
+    }
+}
+
+if (!$autoloadFound) {
+    fwrite(STDERR, "Error: Could not find Composer autoloader.\n");
+    fwrite(STDERR, "Please run 'composer install' first.\n");
+    exit(1);
+}
+
+use FairForge\Tools\ContactInfo\ContactInfoScanner;
+
+/**
+ * Parse command line arguments.
+ *
+ * @param array<int, string> $argv
+ * @return array{target: string|null, options: array<string, mixed>}
+ */
+function parseArguments(array $argv): array
+{
+    $target = null;
+    $options = [
+        'output' => null,
+        'quiet' => false,
+        'help' => false,
+        'insecure' => false,
+    ];
+
+    // Skip script name
+    array_shift($argv);
+
+    foreach ($argv as $arg) {
+        if ($arg === '--help' || $arg === '-h') {
+            $options['help'] = true;
+        } elseif ($arg === '--quiet' || $arg === '-q') {
+            $options['quiet'] = true;
+        } elseif ($arg === '--insecure' || $arg === '-k') {
+            $options['insecure'] = true;
+        } elseif (str_starts_with($arg, '--output=')) {
+            $options['output'] = substr($arg, 9);
+        } elseif (!str_starts_with($arg, '-') && $target === null) {
+            $target = $arg;
+        }
+    }
+
+    return ['target' => $target, 'options' => $options];
+}
+
+/**
+ * Print help message.
+ */
+function printHelp(): void
+{
+    echo <<<HELP
+WordPress Contact Info Scanner
+
+Checks WordPress plugins and themes for publisher contact information:
+- Author: header (publisher name) in the main plugin/theme file
+- Author URI: header (publisher URL) in the main plugin/theme file
+- Plugin URI: / Theme URI: header (project URL)
+
+USAGE:
+    php bin/contact-info <url|path> [options]
+
+ARGUMENTS:
+    <url|path>              URL to a ZIP file or path to a local ZIP/directory
+
+OPTIONS:
+    --output=FILE           Save JSON output to specified file
+    --insecure, -k          Skip SSL certificate verification
+    --quiet, -q             Suppress progress messages (output only JSON)
+    --help, -h              Show this help message
+
+EXAMPLES:
+    # Check a WordPress plugin from wordpress.org
+    php bin/contact-info https://downloads.wordpress.org/plugin/akismet.zip
+
+    # Check a local ZIP file and save results
+    php bin/contact-info ./my-plugin.zip --output=results.json
+
+    # Check a local directory
+    php bin/contact-info ./my-plugin/
+
+    # Quiet mode - only JSON output
+    php bin/contact-info plugin.zip --quiet
+
+EXPECTED FORMAT:
+    The main plugin/theme file should contain publisher headers:
+
+    /**
+     * Plugin Name: My Plugin
+     * ...
+     * Author: John Doe
+     * Author URI: mailto:john@johndoe.com
+     * Plugin URI: https://example.com/my-plugin
+     */
+
+EXIT CODES:
+    0 - Scan passed (has publisher info and at least one email)
+    1 - Scan completed but found issues (missing info or no email)
+    2 - Scan could not be completed due to an error
+
+HELP;
+}
+
+/**
+ * Print a message to stderr if not in quiet mode.
+ */
+function info(string $message, bool $quiet): void
+{
+    if (!$quiet) {
+        fwrite(STDERR, $message . "\n");
+    }
+}
+
+// Main execution
+$parsed = parseArguments($argv);
+$target = $parsed['target'];
+$options = $parsed['options'];
+
+if ($options['help']) {
+    printHelp();
+    exit(0);
+}
+
+if ($target === null) {
+    fwrite(STDERR, "Error: No input URL or file path provided.\n\n");
+    fwrite(STDERR, "Usage: php bin/contact-info <url|path> [options]\n");
+    fwrite(STDERR, "Run 'php bin/contact-info --help' for more information.\n");
+    exit(2);
+}
+
+$scanner = new ContactInfoScanner();
+
+if ($options['insecure']) {
+    $scanner->setSslVerify(false);
+    info('Warning: SSL certificate verification disabled', $options['quiet']);
+}
+
+try {
+    // Determine input type and scan
+    if (filter_var($target, FILTER_VALIDATE_URL)) {
+        info("Downloading and scanning: $target", $options['quiet']);
+        $result = $scanner->scanFromUrl($target);
+    } elseif (is_file($target) && pathinfo($target, PATHINFO_EXTENSION) === 'zip') {
+        info("Scanning ZIP file: $target", $options['quiet']);
+        $result = $scanner->scanFromZipFile($target);
+    } elseif (is_dir($target)) {
+        info("Scanning directory: $target", $options['quiet']);
+        $result = $scanner->scanDirectory($target);
+    } else {
+        fwrite(STDERR, "Error: '$target' is not a valid URL, ZIP file, or directory.\n");
+        exit(2);
+    }
+
+    // Output results
+    $json = $result->toJson();
+
+    if ($options['output']) {
+        if ($result->saveToFile($options['output'])) {
+            info("Results saved to: {$options['output']}", $options['quiet']);
+        } else {
+            fwrite(STDERR, "Error: Could not save results to {$options['output']}\n");
+        }
+    }
+
+    echo $json . "\n";
+
+    // Display summary if not quiet
+    if (!$options['quiet']) {
+        fwrite(STDERR, "\n--- Summary ---\n");
+        $summary = $result->getSummary();
+        fwrite(STDERR, "Package type: " . ($summary['package_type'] ?? 'unknown') . "\n");
+        fwrite(STDERR, "Publisher name: " . ($summary['publisher_name'] ?? 'Not found') . "\n");
+        fwrite(STDERR, "Publisher URI: " . ($summary['publisher_uri'] ?? 'Not found') . "\n");
+        fwrite(STDERR, "Has email: " . ($summary['has_email'] ? 'Yes' : 'No') . "\n");
+        fwrite(STDERR, "Issues: " . $summary['issue_count'] . "\n");
+        fwrite(STDERR, "Result: " . ($result->passes() ? 'PASS' : 'FAIL') . "\n");
+    }
+
+    // Exit code based on result
+    exit($result->passes() ? 0 : 1);
+} catch (RuntimeException $e) {
+    fwrite(STDERR, "Error: " . $e->getMessage() . "\n");
+    exit(2);
+}

@@ -3,10 +3,13 @@
     "description": "Shared utilities for FairForge tools",
     "type": "library",
     "license": "MIT",
+    "minimum-stability": "dev",
+    "prefer-stable": true,
     "require": {
         "php": ">=8.1",
         "ext-curl": "*",
-        "nelexa/zip": "^4.0"
+        "nelexa/zip": "^4.0",
+        "fairpm/did-manager": "^0.0.2"
     },
     "autoload": {
         "psr-4": {

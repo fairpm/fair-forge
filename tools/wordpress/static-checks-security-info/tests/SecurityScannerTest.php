@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace FairForge\Tools\SecurityHeader\Tests;
+namespace FairForge\Tools\SecurityInfo\Tests;
 
 use FairForge\Shared\ScanTarget;
 use FairForge\Shared\ToolScannerInterface;
 use FairForge\Shared\ZipHandler;
-use FairForge\Tools\SecurityHeader\SecurityResult;
-use FairForge\Tools\SecurityHeader\SecurityScanner;
+use FairForge\Tools\SecurityInfo\SecurityResult;
+use FairForge\Tools\SecurityInfo\SecurityScanner;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -52,7 +52,7 @@ class SecurityScannerTest extends TestCase
      */
     public function testGetToolName(): void
     {
-        $this->assertEquals('security-header', $this->scanner->getToolName());
+        $this->assertEquals('security-info', $this->scanner->getToolName());
     }
 
     /**
@@ -193,26 +193,21 @@ PHP);
     }
 
     /**
-     * Test scanning a theme with security header.
+     * Test scanning a non-plugin directory returns no main file.
      */
-    public function testScanThemeWithSecurityHeader(): void
+    public function testScanNonPluginDirectoryReturnsNoMainFile(): void
     {
-        $themeDir = $this->testDir . '/my-theme';
-        mkdir($themeDir);
+        $emptyDir = $this->testDir . '/not-a-plugin';
+        mkdir($emptyDir);
 
-        file_put_contents($themeDir . '/style.css', <<<'CSS'
-/*
-Theme Name: My Theme
-Description: A test theme
-Security: security@example.com
-*/
-CSS);
+        file_put_contents($emptyDir . '/readme.txt', 'Not a plugin');
 
-        $result = $this->scanner->scanDirectory($themeDir);
+        $result = $this->scanner->scanDirectory($emptyDir);
 
         $this->assertTrue($result->success);
-        $this->assertEquals('security@example.com', $result->headerContact);
-        $this->assertEquals('theme', $result->packageType);
+        $this->assertNull($result->headerContact);
+        $this->assertNull($result->packageType);
+        $this->assertContains('Could not identify the main plugin file', $result->issues);
     }
 
     /**
@@ -449,6 +444,309 @@ PHP);
 
         $this->assertEquals('main@example.com', $result->headerContact);
         $this->assertEquals('my-plugin.php', $result->headerFile);
+    }
+
+    /**
+     * Test plugin with docblock before the real plugin header (like Akismet).
+     */
+    public function testPluginWithDocblockBeforeHeader(): void
+    {
+        $pluginDir = $this->testDir . '/my-plugin';
+        mkdir($pluginDir);
+
+        file_put_contents($pluginDir . '/my-plugin.php', <<<'PHP'
+<?php
+/**
+ * @package MyPlugin
+ */
+/*
+Plugin Name: My Plugin
+Security: security@example.com
+*/
+PHP);
+
+        $result = $this->scanner->scanDirectory($pluginDir);
+
+        $this->assertTrue($result->success);
+        $this->assertEquals('security@example.com', $result->headerContact);
+    }
+
+    // -------------------------------------------------------
+    // readme.txt integration tests
+    // -------------------------------------------------------
+
+    /**
+     * Test that readme.txt security section with email is extracted.
+     */
+    public function testReadmeSecuritySectionWithEmail(): void
+    {
+        $pluginDir = $this->testDir . '/my-plugin';
+        mkdir($pluginDir);
+
+        file_put_contents($pluginDir . '/my-plugin.php', <<<'PHP'
+<?php
+/**
+ * Plugin Name: My Plugin
+ * Security: security@example.com
+ */
+PHP);
+
+        file_put_contents($pluginDir . '/readme.txt', <<<'TXT'
+=== My Plugin ===
+Contributors: johndoe
+Tags: test
+Requires at least: 5.0
+Tested up to: 6.4
+Stable tag: 1.0
+License: GPLv2
+
+A test plugin.
+
+== Description ==
+Full description here.
+
+== Security ==
+To report a vulnerability, email security@example.com responsibly.
+TXT);
+
+        $result = $this->scanner->scanDirectory($pluginDir);
+
+        $this->assertTrue($result->hasReadmeSecuritySection());
+        $this->assertEquals('security@example.com', $result->readmeSecurityContact);
+    }
+
+    /**
+     * Test that hasSecurityInfo is true when only readme.txt has security section.
+     */
+    public function testHasSecurityInfoFromReadmeOnly(): void
+    {
+        $pluginDir = $this->testDir . '/my-plugin';
+        mkdir($pluginDir);
+
+        file_put_contents($pluginDir . '/my-plugin.php', <<<'PHP'
+<?php
+/**
+ * Plugin Name: My Plugin
+ */
+PHP);
+
+        file_put_contents($pluginDir . '/readme.txt', <<<'TXT'
+=== My Plugin ===
+Contributors: johndoe
+Tags: test
+Requires at least: 5.0
+Tested up to: 6.4
+Stable tag: 1.0
+License: GPLv2
+
+A test plugin.
+
+== Description ==
+Full description here.
+
+== Security ==
+Report issues to security@example.com
+TXT);
+
+        $result = $this->scanner->scanDirectory($pluginDir);
+
+        $this->assertTrue($result->hasSecurityInfo());
+        $this->assertTrue($result->hasReadmeSecuritySection());
+    }
+
+    /**
+     * Test readme.txt security contact included in consistency check.
+     */
+    public function testReadmeSecurityConsistencyWithHeader(): void
+    {
+        $pluginDir = $this->testDir . '/my-plugin';
+        mkdir($pluginDir);
+
+        file_put_contents($pluginDir . '/my-plugin.php', <<<'PHP'
+<?php
+/**
+ * Plugin Name: My Plugin
+ * Security: security@example.com
+ */
+PHP);
+
+        file_put_contents($pluginDir . '/readme.txt', <<<'TXT'
+=== My Plugin ===
+Contributors: johndoe
+Tags: test
+Requires at least: 5.0
+Tested up to: 6.4
+Stable tag: 1.0
+License: GPLv2
+
+A test plugin.
+
+== Description ==
+Full description here.
+
+== Security ==
+Contact security@example.com to report vulnerabilities.
+TXT);
+
+        $result = $this->scanner->scanDirectory($pluginDir);
+
+        $this->assertTrue($result->isConsistent);
+    }
+
+    /**
+     * Test readme.txt security contact inconsistency with header.
+     */
+    public function testReadmeSecurityInconsistencyWithHeader(): void
+    {
+        $pluginDir = $this->testDir . '/my-plugin';
+        mkdir($pluginDir);
+
+        file_put_contents($pluginDir . '/my-plugin.php', <<<'PHP'
+<?php
+/**
+ * Plugin Name: My Plugin
+ * Security: security@example.com
+ */
+PHP);
+
+        file_put_contents($pluginDir . '/readme.txt', <<<'TXT'
+=== My Plugin ===
+Contributors: johndoe
+Tags: test
+Requires at least: 5.0
+Tested up to: 6.4
+Stable tag: 1.0
+License: GPLv2
+
+A test plugin.
+
+== Description ==
+Full description here.
+
+== Security ==
+Contact different@other.com to report vulnerabilities.
+TXT);
+
+        $result = $this->scanner->scanDirectory($pluginDir);
+
+        $this->assertFalse($result->isConsistent);
+    }
+
+    /**
+     * Test no readme.txt security section results in null contact.
+     */
+    public function testNoReadmeSecuritySection(): void
+    {
+        $pluginDir = $this->testDir . '/my-plugin';
+        mkdir($pluginDir);
+
+        file_put_contents($pluginDir . '/my-plugin.php', <<<'PHP'
+<?php
+/**
+ * Plugin Name: My Plugin
+ * Security: security@example.com
+ */
+PHP);
+
+        file_put_contents($pluginDir . '/readme.txt', <<<'TXT'
+=== My Plugin ===
+Contributors: johndoe
+Tags: test
+Requires at least: 5.0
+Tested up to: 6.4
+Stable tag: 1.0
+License: GPLv2
+
+A test plugin.
+
+== Description ==
+Full description here.
+TXT);
+
+        $result = $this->scanner->scanDirectory($pluginDir);
+
+        $this->assertFalse($result->hasReadmeSecuritySection());
+        $this->assertNull($result->readmeSecurityContact);
+    }
+
+    /**
+     * Test readme security contact in getData output.
+     */
+    public function testReadmeSecurityFieldsInGetData(): void
+    {
+        $pluginDir = $this->testDir . '/my-plugin';
+        mkdir($pluginDir);
+
+        file_put_contents($pluginDir . '/my-plugin.php', <<<'PHP'
+<?php
+/**
+ * Plugin Name: My Plugin
+ * Security: security@example.com
+ */
+PHP);
+
+        file_put_contents($pluginDir . '/readme.txt', <<<'TXT'
+=== My Plugin ===
+Contributors: johndoe
+Tags: test
+Requires at least: 5.0
+Tested up to: 6.4
+Stable tag: 1.0
+License: GPLv2
+
+A test plugin.
+
+== Description ==
+Full description here.
+
+== Security ==
+Report to security@example.com
+TXT);
+
+        $result = $this->scanner->scanDirectory($pluginDir);
+        $data = $result->getData();
+
+        $this->assertArrayHasKey('readme_txt', $data['files']);
+        $this->assertTrue($data['files']['readme_txt']['has_security_section']);
+        $this->assertEquals('security@example.com', $data['files']['readme_txt']['contact']);
+    }
+
+    /**
+     * Test getPrimaryContact falls through to readme contact.
+     */
+    public function testGetPrimaryContactFallsToReadme(): void
+    {
+        $pluginDir = $this->testDir . '/my-plugin';
+        mkdir($pluginDir);
+
+        file_put_contents($pluginDir . '/my-plugin.php', <<<'PHP'
+<?php
+/**
+ * Plugin Name: My Plugin
+ */
+PHP);
+
+        file_put_contents($pluginDir . '/readme.txt', <<<'TXT'
+=== My Plugin ===
+Contributors: johndoe
+Tags: test
+Requires at least: 5.0
+Tested up to: 6.4
+Stable tag: 1.0
+License: GPLv2
+
+A test plugin.
+
+== Description ==
+Full description here.
+
+== Security ==
+Report to readme-security@example.com
+TXT);
+
+        $result = $this->scanner->scanDirectory($pluginDir);
+
+        $this->assertEquals('readme-security@example.com', $result->getPrimaryContact());
     }
 
     /**
