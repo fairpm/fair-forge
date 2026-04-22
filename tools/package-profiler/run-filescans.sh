@@ -304,7 +304,6 @@ if [[ -f "$TARGET_DIR" ]]; then
 				err "'$TARGET_DIR' is not a directory or a supported archive"
 				exit 2
 			fi
-			exit 2
 			;;
 	esac
 fi
