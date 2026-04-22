@@ -392,7 +392,7 @@ fi
 
 # ─── working directory for temp files & JSON side-outputs ──────────────
 #
-TMPDIR_WORK=$(mktemp -d) || { err "Cannot create temp directory"; exit 2; }
+TMPDIR_WORK=$(mktemp -d "${TMPDIR:-/tmp}/run-filescans.XXXXXX") || { err "Cannot create temp directory"; exit 2; }
 
 JSON_STATS="$TMPDIR_WORK/stats.json"
 JSON_PERMS="$TMPDIR_WORK/perms.json"
