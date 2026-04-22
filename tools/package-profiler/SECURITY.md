@@ -6,7 +6,7 @@ and in the software supply chain of which FAIR is a part.
 If you believe you have identified a security vulnerability in any of our
 software or in the architecture detailed in The FAIR Protocol, please contact
 the FAIR Technical Steering Committee directly. Our Security Working Group will
-review and address all legitimate security issue.
+review and address all legitimate security issues.
 
 Security Contact: [security@fair.pm](mailto:security@fair.pm)
 
