@@ -1,0 +1,379 @@
+{
+  "_comment": "Package Profiler — canonical JSON output schema example",
+  "_note": "Each script produces one top-level object with a single root key. The meta.json produced by sbom-toolkit.sh merges all scan sections into one document. This file shows the structure of every root key. All fields shown; optional fields may be null or absent when not applicable.",
+
+  "crypto_verification": {
+    "target":           "akismet.5.3.zip",
+    "timestamp":        "2025-11-14T09:12:00Z",
+    "toolkit_version":  "1.0.0",
+    "package_identity": {
+      "name":      "akismet",
+      "version":   "5.3",
+      "ecosystem": "wordpress",
+      "vendor":    "Automattic"
+    },
+    "calculated_checksums": {
+      "sha256": "a1b2c3d4e5f6789012345678901234567890123456789012345678901234abcd",
+      "sha384": "aabbccddeeff00112233445566778899aabbccddeeff001122334455667788990011223344556677",
+      "sha512": "unavailable"
+    },
+    "verification": {
+      "status":           "verified",
+      "verified":         true,
+      "checksum_source":  "wordpress_api",
+      "reference_sha256": "a1b2c3d4e5f6789012345678901234567890123456789012345678901234abcd",
+      "reference_sha512": null,
+      "sha1_noted":       null,
+      "api_download_url": "https://downloads.wordpress.org/plugin/akismet.5.3.zip",
+      "wp_file_checksums_url": "https://downloads.wordpress.org/plugin-checksums/akismet/5.3.json",
+      "checks": [
+        { "algorithm": "SHA256", "status": "matched" }
+      ]
+    },
+    "extraction": {
+      "performed":      false,
+      "directory_name": null,
+      "path":           null
+    },
+    "risk_contribution": 0,
+    "issues": []
+  },
+
+  "provenance_verification": {
+    "status":          "verified",
+    "package_type":    "wordpress",
+    "slsa_level":      2,
+    "timestamp":       "2025-11-14T09:12:05Z",
+    "toolkit_version": "1.0.0",
+    "mode":            "slsa",
+    "public_verification_skipped": false,
+    "artifact": {
+      "name": "akismet.5.3.zip"
+    },
+    "verification_summary": {
+      "provenance_found":  true,
+      "provenance_valid":  true,
+      "source_verified":   true,
+      "builder_trusted":   true,
+      "wp_files_verified": false
+    },
+    "risk_contribution": 100,
+    "risk_context": {
+      "base_risk":           300,
+      "adjustments_applied": 200,
+      "note":                "Full verification expected"
+    },
+    "checks": [
+      { "check": "slsa_format",       "status": "passed", "type": "https://slsa.dev/provenance/v1" },
+      { "check": "builder_trusted",   "status": "passed", "builder": "https://github.com/actions/runner" },
+      { "check": "source_repo",       "status": "passed" },
+      { "check": "artifact_digest",   "status": "passed" }
+    ],
+    "issues": []
+  },
+
+  "vulnerability_scan": {
+    "_note": "vuln-scan.sh merges Grype vulnerability data directly into the CycloneDX SBOM. The risk_assessment block is the primary integration point for sbom-toolkit.sh.",
+    "bomFormat":    "CycloneDX",
+    "specVersion":  "1.5",
+    "metadata": { "component": { "name": "akismet", "version": "5.3" } },
+    "components":    [],
+    "vulnerabilities": [
+      {
+        "id": "CVE-2024-12345",
+        "severity": "HIGH",
+        "cvss": { "version": "3.1", "score": 8.1 },
+        "artifact": { "name": "some-dep", "version": "1.0.0" }
+      }
+    ],
+    "risk_assessment": {
+      "weighted_risk":   324,
+      "cvss_critical":   0,
+      "cvss_high":       324,
+      "cvss_medium":     0,
+      "cvss_low":        0,
+      "cvss_negligible": 0,
+      "vuln_counts": {
+        "critical":    0,
+        "high":        1,
+        "medium":      0,
+        "low":         0,
+        "negligible":  0,
+        "unknown":     0,
+        "total":       1
+      },
+      "scoring_notes": {
+        "method":          "weighted_cvss",
+        "cvss_version":    "3.1",
+        "unscored_vulns":  0,
+        "weights":         { "critical": 1000, "high": 324, "medium": 81, "low": 9, "negligible": 1 }
+      }
+    }
+  },
+
+  "license_compliance": {
+    "status":          "issues_found",
+    "gpl_compatible":  false,
+    "timestamp":       "2025-11-14T09:12:10Z",
+    "toolkit_version": "1.0.0",
+    "sbom_source": {
+      "file":      "akismet.5.3.spdx.json",
+      "format":    "spdx",
+      "ecosystem": "wordpress"
+    },
+    "root_package": {
+      "license":          "GPL-2.0-or-later",
+      "license_category": "strong_copyleft",
+      "license_source":   "spdx_declared"
+    },
+    "summary": {
+      "total":            12,
+      "permissive":       8,
+      "weak_copyleft":    2,
+      "strong_copyleft":  1,
+      "gpl_incompatible": 1,
+      "proprietary":      0,
+      "unknown":          0
+    },
+    "policy": {
+      "require_gpl_compat": true,
+      "fail_on_unknown":    false
+    },
+    "risk_contribution": 100,
+    "issues": [
+      {
+        "type":     "gpl_incompatible",
+        "severity": "HIGH",
+        "package":  "some/package",
+        "license":  "Apache-2.0",
+        "reason":   "Apache-2.0 is incompatible with GPL-2.0-only"
+      }
+    ],
+    "packages": [
+      { "name": "some/package", "version": "2.1.0", "license": "Apache-2.0", "category": "permissive", "compatible": false }
+    ]
+  },
+
+  "dependency_audit": {
+    "timestamp":       "2025-11-14T09:12:15Z",
+    "toolkit_version": "1.0.0",
+    "sbom_source":     "akismet.5.3.cdx.json",
+    "scan_status":     "clean",
+    "findings_count":  0,
+    "findings_note":   "No typosquatting, dependency confusion, or suspicious patterns detected in scanned packages",
+    "summary": {
+      "typosquatting":        0,
+      "dependency_confusion": 0,
+      "suspicious_packages":  0,
+      "total_issues":         0
+    },
+    "checks_performed": {
+      "typosquatting":          true,
+      "dependency_confusion":   true,
+      "suspicious_patterns":    true,
+      "typosquat_max_distance": 2,
+      "typosquat_method":       "levenshtein_wagner_fischer"
+    },
+    "risk_contribution": 0,
+    "findings": []
+  },
+
+  "sbom_comparison": {
+    "timestamp":       "2025-11-14T09:12:20Z",
+    "toolkit_version": "1.0.0",
+    "mode":            "cached",
+    "files": {
+      "primary":       "akismet.5.3.cdx.json",
+      "baseline":      "akismet.5.2.cdx.json",
+      "baseline_type": "cached_previous_version"
+    },
+    "package_counts": {
+      "primary":  14,
+      "baseline": 13
+    },
+    "summary": {
+      "added":                 2,
+      "removed":               1,
+      "changed":               1,
+      "same":                  10,
+      "manifest_only":         0,
+      "total_differences":     4,
+      "report_manifest_only":  false
+    },
+    "risk_delta": {
+      "direction": "increased",
+      "added_risk": 50,
+      "removed_risk": 0
+    },
+    "findings": [
+      { "type": "added",   "package": "new-dep",     "version": "1.0.0" },
+      { "type": "removed", "package": "old-dep",     "version": "0.9.0" },
+      { "type": "changed", "package": "shared-dep",  "from": "2.0.0", "to": "2.1.0" }
+    ]
+  },
+
+  "file_statistics": {
+    "target_directory": "akismet",
+    "scan_type":        "file_statistics",
+    "toolkit_version":  "1.0.0",
+    "timestamp":        "2025-11-14T09:12:25Z",
+    "elapsed_seconds":  2,
+    "totals": {
+      "files":              87,
+      "lines":              14203,
+      "bytes":              412800,
+      "empty_files":        2,
+      "hidden_files":       0,
+      "hidden_directories": 0,
+      "minified_files":     4,
+      "minified_bytes":     98304
+    },
+    "categories": [
+      { "category": "php",   "files": 42, "lines": 9800,  "bytes": 280000 },
+      { "category": "js",    "files": 18, "lines": 2400,  "bytes": 98304  },
+      { "category": "css",   "files": 6,  "lines": 800,   "bytes": 18000  },
+      { "category": "other", "files": 21, "lines": 1203,  "bytes": 16496  }
+    ],
+    "best_practices": {
+      "checked": 6,
+      "found":   4,
+      "missing": 2,
+      "items": [
+        { "file": "readme.txt",    "present": true  },
+        { "file": "composer.json", "present": true  },
+        { "file": "CHANGELOG.md",  "present": false },
+        { "file": "LICENSE",       "present": true  },
+        { "file": "phpunit.xml",   "present": false },
+        { "file": ".gitignore",    "present": true  }
+      ]
+    }
+  },
+
+  "content_scan": {
+    "target_directory":      "akismet",
+    "scan_type":             "content_scan",
+    "toolkit_version":       "1.0.0",
+    "timestamp":             "2025-11-14T09:12:30Z",
+    "elapsed_seconds":       4,
+    "files_checked":         87,
+    "files_pattern_scanned": 60,
+    "files_size_skipped":    0,
+    "summary": {
+      "total_issues": 0,
+      "critical":     0,
+      "high":         0,
+      "medium":       0,
+      "low":          0,
+      "patterns": {
+        "reverse_shells":    0,
+        "crypto_miners":     0,
+        "obfuscation":       0,
+        "data_exfiltration": 0,
+        "webshell":          0
+      },
+      "integrity": {
+        "mime_mismatches": {
+          "total":    0,
+          "critical": 0,
+          "high":     0,
+          "low":      0
+        },
+        "deceptive_extensions": 0,
+        "embedded_code": {
+          "total":    0,
+          "critical": 0,
+          "high":     0
+        }
+      }
+    },
+    "risk_contribution": 0,
+    "findings": []
+  },
+
+  "permission_audit": {
+    "target_directory": "akismet",
+    "scan_type":        "permission_audit",
+    "toolkit_version":  "1.0.0",
+    "timestamp":        "2025-11-14T09:12:35Z",
+    "elapsed_seconds":  1,
+    "fix_mode":         false,
+    "summary": {
+      "items_checked":             87,
+      "total_issues":              1,
+      "total_directories":         12,
+      "passed_directories":        12,
+      "total_files":               75,
+      "passed_files":              74,
+      "writable_files":            0,
+      "writable_directories":      0,
+      "missing_sticky_bit":        0,
+      "symlinks": {
+        "total":    0,
+        "external": 0,
+        "dangling": 0,
+        "internal": 0
+      },
+      "privilege_escalation":      0,
+      "permission_inversions":     0,
+      "unnecessary_exec":          1,
+      "sensitive_exposure":        0,
+      "orphaned_ownership":        0,
+      "deploy_artifacts":          0,
+      "secure_permissions":        74,
+      "vendor_secure_permissions": 0,
+      "fixed":                     false,
+      "failed":                    0,
+      "skipped_symlinks":          0
+    },
+    "risk_contribution": 10,
+    "risk_detail": {
+      "critical_floor": 0,
+      "other_risk":     10
+    },
+    "findings": [
+      {
+        "severity":    "LOW",
+        "type":        "unnecessary_exec",
+        "permissions": "-rwxr-xr-x",
+        "file_path":   "assets/readme-banner.png"
+      }
+    ]
+  },
+
+  "slsa_attestation": {
+    "_note": "slsa-attest.sh produces two files: a SLSA provenance document and a separate assessment document. The assessment is what sbom-toolkit.sh merges into meta.json.",
+    "highest_satisfied": 0,
+    "target_level":      1,
+    "levels": {
+      "l0": {
+        "satisfied": true,
+        "requirements": {
+          "provenance_exists":   { "met": true,  "note": "Observer-generated SLSA document produced" },
+          "artifact_digest":     { "met": true,  "note": "SHA-256 digest calculated" },
+          "observer_disclaimer": { "met": true,  "note": "Disclaimer embedded in provenance document" }
+        }
+      },
+      "l1": {
+        "satisfied": false,
+        "requirements": {
+          "builder_id_declared": {
+            "met":          false,
+            "value":        null,
+            "missing_flag": "--builder-id",
+            "description":  "Non-placeholder builder identity URI"
+          },
+          "policy_uri_declared": {
+            "met":          false,
+            "value":        null,
+            "missing_flag": "--policy-uri",
+            "description":  "Policy or methodology URI"
+          }
+        }
+      }
+    },
+    "remediation": [
+      "Pass --builder-id with the builder URI (e.g. https://github.com/actions/runner) to satisfy L1",
+      "Pass --policy-uri with the build policy URI to satisfy L1"
+    ]
+  }
+}
