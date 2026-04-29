@@ -408,12 +408,14 @@ case "$OUTPUT_FORMAT" in
             jq -n \
                 --argjson risk  "$RISK_DATA" \
                 --argjson total "$VULN_COUNT" \
+                --arg risk_level "$RISK_LEVEL" \
                 '{
                     vulnerability_summary: {
-                        total:        $total,
-                        by_severity:  $risk.vuln_counts,
+                        total:         $total,
+                        by_severity:   $risk.vuln_counts,
                         weighted_risk: $risk.weighted_risk,
-                        risk_level:    $risk.scoring_notes
+                        risk_level:    $risk_level,
+                        scoring_notes: $risk.scoring_notes
                     }
                 }'
         else
