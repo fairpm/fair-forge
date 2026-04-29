@@ -32,7 +32,7 @@
 
 ```
 meta/<clean-name>/
-  <clean-name>.filescan.json    merged output  ← primary output
+  <clean-name>.meta.json        merged output  ← primary output
   <clean-name>.perms.json       from permission-check (if --keep-intermediate)
   <clean-name>.file-stats.json  from file-stats (if --keep-intermediate)
   <clean-name>.content-scan.json from deep-filescan (if --keep-intermediate)
