@@ -38,8 +38,9 @@ INPUT_TARGET=""             # SBOM file, archive, or directory
 
 # ── Cleanup trap ─────────────────────────────────────────────────────────────
 
+TMPDIR_WORK=""
 cleanup() {
-    rm -f /tmp/vuln_scan_*.json /tmp/vuln_final_*.json 2>/dev/null || true
+    [[ -n "$TMPDIR_WORK" && -d "$TMPDIR_WORK" ]] && rm -rf "$TMPDIR_WORK"
 }
 trap cleanup EXIT INT TERM
 
@@ -129,7 +130,7 @@ die()  { echo "Error: $*" >&2; exit 2; }
 
 check_dependencies() {
     local missing=()
-    for cmd in grype jq; do
+    for cmd in grype jq timeout bc; do
         command -v "$cmd" &>/dev/null || missing+=("$cmd")
     done
     if [[ ${#missing[@]} -gt 0 ]]; then
@@ -331,7 +332,9 @@ log "[SCAN] Scanning '$(basename "$INPUT_TARGET")' for vulnerabilities..."
     && log "       DB age: ${DB_AGE_HOURS}h" \
     || log "       (First run may be slow while Grype initialises its database)"
 
-TMP_VULN=$(mktemp -t vuln_scan_XXXXXX.json)
+TMPDIR_WORK=$(mktemp -d "${TMPDIR:-/tmp}/vuln-scan.XXXXXX") \
+    || { echo "Error: Cannot create temp directory" >&2; exit 2; }
+TMP_VULN="$TMPDIR_WORK/vuln_scan.json"
 
 grype_status=0
 declare -a grype_cmd=(grype "$GRYPE_SCHEME" -o json)
@@ -365,7 +368,7 @@ RISK_LEVEL="LOW"
 
 if [[ "$CALCULATE_RISK" == "true" ]]; then
     # Capture stderr separately so a jq error message is visible, not silenced
-    risk_stderr=$(mktemp -t vuln_risk_err_XXXXXX.txt)
+    risk_stderr="$TMPDIR_WORK/risk_stderr.txt"
     risk_exit=0
     RISK_DATA=$(calculate_risk_score "$TMP_VULN" "$JQ_FILE" 2>"$risk_stderr") \
         || risk_exit=$?
@@ -384,8 +387,6 @@ if [[ "$CALCULATE_RISK" == "true" ]]; then
             scoring_notes: {method:"failed", weights:"", unscored_vulns:0, cvss_version:""}
         }')
     fi
-    rm -f "$risk_stderr" 2>/dev/null || true
-
     RISK_SCORE=$(echo "$RISK_DATA" | jq -r '.weighted_risk // 0')
     RISK_LEVEL=$(risk_level_label "$RISK_SCORE")
     info "Weighted risk score: $RISK_SCORE ($RISK_LEVEL)"
@@ -442,7 +443,7 @@ case "$OUTPUT_FORMAT" in
 
     # ── merged: SBOM + vulnerability data + risk assessment (default) ────────
     merged)
-        TMP_FINAL=$(mktemp -t vuln_final_XXXXXX.json)
+        TMP_FINAL="$TMPDIR_WORK/vuln_final.json"
 
         # Build the risk_assessment block with a consistent schema
         RISK_BLOCK=$(jq -n \

@@ -87,9 +87,9 @@
       }
     ],
     "risk_assessment": {
-      "weighted_risk":   324,
+      "weighted_risk":   202.5,
       "cvss_critical":   0,
-      "cvss_high":       324,
+      "cvss_high":       8.1,
       "cvss_medium":     0,
       "cvss_low":        0,
       "cvss_negligible": 0,
@@ -103,10 +103,10 @@
         "total":       1
       },
       "scoring_notes": {
-        "method":          "weighted_cvss",
-        "cvss_version":    "3.1",
+        "method":          "cvss_weighted",
+        "cvss_version":    "3.1_preferred",
         "unscored_vulns":  0,
-        "weights":         { "critical": 1000, "high": 324, "medium": 81, "low": 9, "negligible": 1 }
+        "weights":         "Critical×100 High×25 Medium×5 Low×1 Negligible×0.1"
       }
     }
   },

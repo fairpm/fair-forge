@@ -8,7 +8,7 @@
 # }
 #
 # Weights: Critical×100, High×25, Medium×5, Low×1, Negligible×0.1
-# CVSS preference: 3.1 > 3.0 > 2.0 > first available
+# CVSS preference: 3.1 > 3.0 > first available with a non-null version
 
 [.matches[] |
     {
