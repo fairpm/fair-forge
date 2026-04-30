@@ -161,29 +161,25 @@ sanitize_name() {
     echo "$clean"
 }
 
+# _is_hash_version VALUE
+# Returns 0 (true) if VALUE looks like a content hash rather than a version string.
+# Syft uses SHA256 hashes as metadata.component.version when no semantic version
+# can be determined from archive contents.
+_is_hash_version() {
+    local v="$1"
+    # Bare hex hash (32+ chars, upper or lower): raw SHA-256/SHA-512 hex
+    [[ ${#v} -ge 32 ]] && [[ "$v" =~ ^[0-9a-fA-F]+$ ]] && return 0
+    # Digest-prefixed form: "sha256:abcdef...", "sha512:...", "md5:..."
+    [[ "$v" =~ ^(sha256|sha512|sha384|sha1|md5)[_:][0-9a-fA-F]{16,}$ ]] && return 0
+    return 1
+}
+
 # extract_version_from_sbom FILE
 # Reads a generated SPDX or CycloneDX JSON and returns the root package version.
 # Returns empty string if not found — callers must handle the empty case.
 extract_version_from_sbom() {
     local file="$1"
     local ver=""
-
-    # Helper: reject values that look like content hashes rather than version strings.
-    # Syft uses the file's SHA256 hash as metadata.component.version when it cannot
-    # determine a semantic version from the archive contents. A real version number
-    # always contains a digit followed by a non-hex character (dot, dash, letter beyond
-    # a-f) or is short enough that it cannot be a full hash. A 32+ character string
-    # composed entirely of lowercase hex digits is always a hash, never a version.
-    _is_hash_version() {
-        local v="$1"
-        # Bare hex hash (32+ chars, upper or lower): raw SHA-256/SHA-512 hex
-        [[ ${#v} -ge 32 ]] && [[ "$v" =~ ^[0-9a-fA-F]+$ ]] && return 0
-        # Digest-prefixed form: "sha256:abcdef...", "sha512:...", "md5:..."
-        # Syft sets metadata.component.version to this OCI digest format for
-        # archive/directory targets when no semantic version can be determined.
-        [[ "$v" =~ ^(sha256|sha512|sha384|sha1|md5)[_:][0-9a-fA-F]{16,}$ ]] && return 0
-        return 1
-    }
 
     # CycloneDX: metadata.component.version
     ver=$(jq -r '.metadata.component.version // ""' "$file" 2>/dev/null || echo "")
@@ -646,6 +642,9 @@ if [[ "$SUCCESS" == "true" ]]; then
     if [[ "$WRITE_FILES" == "true" ]]; then
         [[ "$OUTPUT_FORMAT" =~ (both|spdx) ]]      && log "    SPDX:      $(basename "$SPDX_FILE")"
         [[ "$OUTPUT_FORMAT" =~ (both|cyclonedx) ]] && log "    CycloneDX: $(basename "$CDX_FILE")"
+    fi
+    if [[ "$JSON_OUTPUT" == "true" && -n "${PROV_FILE:-}" && -f "$PROV_FILE" ]]; then
+        jq '.' "$PROV_FILE"
     fi
     exit 0
 else
